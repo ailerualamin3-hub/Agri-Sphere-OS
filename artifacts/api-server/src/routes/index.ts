@@ -1,8 +1,28 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
+import farmerRouter from "./farmer";
+import dashboardRouter from "./dashboard";
+import climateRouter from "./climate";
+import farmgptRouter from "./farmgpt";
+import farmsRouter from "./farms";
+import cropsRouter from "./crops";
+import livestockRouter from "./livestock";
+import marketRouter from "./market";
+import farmconnectRouter from "./farmconnect";
+import neuroscoreRouter from "./neuroscore";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use("/farmer", farmerRouter);
+router.use("/dashboard", dashboardRouter);
+router.use("/climate", climateRouter);
+router.use("/farmgpt", farmgptRouter);
+router.use("/farms", farmsRouter);
+router.use("/crops", cropsRouter);
+router.use("/livestock", livestockRouter);
+router.use("/market", marketRouter);
+router.use("/farmconnect", farmconnectRouter);
+router.use("/neuroscore", neuroscoreRouter);
 
 export default router;

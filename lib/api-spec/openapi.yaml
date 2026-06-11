@@ -1,22 +1,41 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: FREGE AI – FregeOS Agricultural Operating System API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: farmer
+    description: Farmer profile and identity
+  - name: dashboard
+    description: Home dashboard data
+  - name: farmgpt
+    description: AI assistant interactions
+  - name: farm
+    description: Farm management
+  - name: crops
+    description: Crop management
+  - name: livestock
+    description: Livestock management
+  - name: market
+    description: AgriMarket operations
+  - name: farmconnect
+    description: Community collaboration
+  - name: neuroscore
+    description: Farmer intelligence score
+  - name: climate
+    description: Climate intelligence
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +43,845 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ─── FARMER PROFILE ───────────────────────────────────────────────────────
+  /farmer/profile:
+    get:
+      operationId: getFarmerProfile
+      tags: [farmer]
+      summary: Get current farmer profile
+      responses:
+        "200":
+          description: Farmer profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FarmerProfile"
+    patch:
+      operationId: updateFarmerProfile
+      tags: [farmer]
+      summary: Update farmer profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FarmerProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FarmerProfile"
+
+  # ─── DASHBOARD ─────────────────────────────────────────────────────────────
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get full dashboard summary (weather, farm health, AI insights)
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/ai-insights:
+    get:
+      operationId: getAiInsights
+      tags: [dashboard]
+      summary: Get personalized AI insights feed
+      responses:
+        "200":
+          description: AI insights
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AiInsight"
+
+  /dashboard/emergency-contacts:
+    get:
+      operationId: getEmergencyContacts
+      tags: [dashboard]
+      summary: Get nearest emergency service contacts
+      parameters:
+        - in: query
+          name: lat
+          schema:
+            type: number
+        - in: query
+          name: lng
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Emergency contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmergencyContact"
+
+  # ─── CLIMATE INTELLIGENCE ──────────────────────────────────────────────────
+  /climate/forecast:
+    get:
+      operationId: getClimateForecast
+      tags: [climate]
+      summary: Get climate forecast and risk assessment
+      responses:
+        "200":
+          description: Climate forecast
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClimateForecast"
+
+  # ─── FARMGPT ───────────────────────────────────────────────────────────────
+  /farmgpt/conversations:
+    get:
+      operationId: getFarmGptConversations
+      tags: [farmgpt]
+      summary: List FarmGPT conversation history
+      responses:
+        "200":
+          description: Conversations list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Conversation"
+    post:
+      operationId: createFarmGptConversation
+      tags: [farmgpt]
+      summary: Start a new FarmGPT conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConversationInput"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+
+  /farmgpt/conversations/{conversationId}/messages:
+    get:
+      operationId: getFarmGptMessages
+      tags: [farmgpt]
+      summary: Get messages in a conversation
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      operationId: sendFarmGptMessage
+      tags: [farmgpt]
+      summary: Send a message to FarmGPT
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageInput"
+      responses:
+        "201":
+          description: Message sent with AI reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessagePair"
+
+  # ─── FARM MANAGEMENT ───────────────────────────────────────────────────────
+  /farms:
+    get:
+      operationId: getFarms
+      tags: [farm]
+      summary: List all farms for the farmer
+      responses:
+        "200":
+          description: Farms list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Farm"
+    post:
+      operationId: createFarm
+      tags: [farm]
+      summary: Create a new farm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FarmInput"
+      responses:
+        "201":
+          description: Created farm
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Farm"
+
+  /farms/{farmId}:
+    get:
+      operationId: getFarm
+      tags: [farm]
+      summary: Get a specific farm
+      parameters:
+        - in: path
+          name: farmId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Farm details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Farm"
+    patch:
+      operationId: updateFarm
+      tags: [farm]
+      summary: Update farm details
+      parameters:
+        - in: path
+          name: farmId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FarmUpdate"
+      responses:
+        "200":
+          description: Updated farm
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Farm"
+
+  /farms/summary:
+    get:
+      operationId: getFarmSummary
+      tags: [farm]
+      summary: Get aggregated farm health summary
+      responses:
+        "200":
+          description: Farm summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FarmSummary"
+
+  # ─── CROPS ─────────────────────────────────────────────────────────────────
+  /crops:
+    get:
+      operationId: getCrops
+      tags: [crops]
+      summary: List all crops
+      responses:
+        "200":
+          description: Crops list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Crop"
+    post:
+      operationId: createCrop
+      tags: [crops]
+      summary: Add a new crop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CropInput"
+      responses:
+        "201":
+          description: Created crop
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Crop"
+
+  /crops/{cropId}:
+    get:
+      operationId: getCrop
+      tags: [crops]
+      summary: Get crop details
+      parameters:
+        - in: path
+          name: cropId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Crop details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Crop"
+    patch:
+      operationId: updateCrop
+      tags: [crops]
+      summary: Update crop record
+      parameters:
+        - in: path
+          name: cropId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CropUpdate"
+      responses:
+        "200":
+          description: Updated crop
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Crop"
+    delete:
+      operationId: deleteCrop
+      tags: [crops]
+      summary: Delete crop
+      parameters:
+        - in: path
+          name: cropId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ─── LIVESTOCK ─────────────────────────────────────────────────────────────
+  /livestock:
+    get:
+      operationId: getLivestock
+      tags: [livestock]
+      summary: List all livestock records
+      responses:
+        "200":
+          description: Livestock list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Animal"
+    post:
+      operationId: createAnimal
+      tags: [livestock]
+      summary: Add a new animal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnimalInput"
+      responses:
+        "201":
+          description: Created animal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Animal"
+
+  /livestock/{animalId}:
+    get:
+      operationId: getAnimal
+      tags: [livestock]
+      summary: Get animal details
+      parameters:
+        - in: path
+          name: animalId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Animal details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Animal"
+    patch:
+      operationId: updateAnimal
+      tags: [livestock]
+      summary: Update animal record
+      parameters:
+        - in: path
+          name: animalId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnimalUpdate"
+      responses:
+        "200":
+          description: Updated animal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Animal"
+    delete:
+      operationId: deleteAnimal
+      tags: [livestock]
+      summary: Delete animal
+      parameters:
+        - in: path
+          name: animalId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /livestock/summary:
+    get:
+      operationId: getLivestockSummary
+      tags: [livestock]
+      summary: Get livestock health and count summary
+      responses:
+        "200":
+          description: Livestock summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LivestockSummary"
+
+  # ─── MARKET (AgriMarket) ────────────────────────────────────────────────────
+  /market/prices:
+    get:
+      operationId: getMarketPrices
+      tags: [market]
+      summary: Get current market prices for crops and livestock
+      responses:
+        "200":
+          description: Market prices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketPrice"
+
+  /market/listings:
+    get:
+      operationId: getMarketListings
+      tags: [market]
+      summary: List all market listings
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [crop, livestock, input, equipment]
+      responses:
+        "200":
+          description: Listings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketListing"
+    post:
+      operationId: createMarketListing
+      tags: [market]
+      summary: Create a new market listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketListingInput"
+      responses:
+        "201":
+          description: Created listing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketListing"
+
+  /market/listings/{listingId}:
+    get:
+      operationId: getMarketListing
+      tags: [market]
+      summary: Get listing details
+      parameters:
+        - in: path
+          name: listingId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Listing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketListing"
+    delete:
+      operationId: deleteMarketListing
+      tags: [market]
+      summary: Delete a listing
+      parameters:
+        - in: path
+          name: listingId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /market/summary:
+    get:
+      operationId: getMarketSummary
+      tags: [market]
+      summary: Get market activity summary and trending prices
+      responses:
+        "200":
+          description: Market summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketSummary"
+
+  # ─── FARMCONNECT ────────────────────────────────────────────────────────────
+  /farmconnect/feed:
+    get:
+      operationId: getFarmConnectFeed
+      tags: [farmconnect]
+      summary: Get community feed posts
+      responses:
+        "200":
+          description: Feed posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommunityPost"
+
+  /farmconnect/posts:
+    post:
+      operationId: createCommunityPost
+      tags: [farmconnect]
+      summary: Create a community post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommunityPostInput"
+      responses:
+        "201":
+          description: Created post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityPost"
+
+  /farmconnect/posts/{postId}/like:
+    post:
+      operationId: likeCommunityPost
+      tags: [farmconnect]
+      summary: Like a community post
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityPost"
+
+  /farmconnect/nearby-farmers:
+    get:
+      operationId: getNearbyFarmers
+      tags: [farmconnect]
+      summary: Get verified farmers nearby
+      parameters:
+        - in: query
+          name: radiusKm
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Nearby farmers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NearbyFarmer"
+
+  /farmconnect/groups:
+    get:
+      operationId: getFarmerGroups
+      tags: [farmconnect]
+      summary: List farmer groups
+      responses:
+        "200":
+          description: Groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FarmerGroup"
+    post:
+      operationId: createFarmerGroup
+      tags: [farmconnect]
+      summary: Create a farmer group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FarmerGroupInput"
+      responses:
+        "201":
+          description: Created group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FarmerGroup"
+
+  /farmconnect/labour-exchange:
+    get:
+      operationId: getLabourExchangeListings
+      tags: [farmconnect]
+      summary: Get labour exchange requests
+      responses:
+        "200":
+          description: Labour requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LabourExchange"
+    post:
+      operationId: createLabourExchange
+      tags: [farmconnect]
+      summary: Post a labour exchange request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LabourExchangeInput"
+      responses:
+        "201":
+          description: Created request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LabourExchange"
+
+  /farmconnect/equipment-exchange:
+    get:
+      operationId: getEquipmentExchange
+      tags: [farmconnect]
+      summary: Get equipment sharing listings
+      responses:
+        "200":
+          description: Equipment listings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EquipmentExchange"
+    post:
+      operationId: createEquipmentExchange
+      tags: [farmconnect]
+      summary: Post an equipment for sharing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EquipmentExchangeInput"
+      responses:
+        "201":
+          description: Created listing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EquipmentExchange"
+
+  /farmconnect/seed-exchange:
+    get:
+      operationId: getSeedExchange
+      tags: [farmconnect]
+      summary: Get seed and seedling exchange listings
+      responses:
+        "200":
+          description: Seed exchange listings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SeedExchange"
+    post:
+      operationId: createSeedExchange
+      tags: [farmconnect]
+      summary: Post a seed exchange listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SeedExchangeInput"
+      responses:
+        "201":
+          description: Created listing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeedExchange"
+
+  /farmconnect/events:
+    get:
+      operationId: getCommunityEvents
+      tags: [farmconnect]
+      summary: Get upcoming community events
+      responses:
+        "200":
+          description: Events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommunityEvent"
+    post:
+      operationId: createCommunityEvent
+      tags: [farmconnect]
+      summary: Create a community event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommunityEventInput"
+      responses:
+        "201":
+          description: Created event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityEvent"
+
+  /farmconnect/community-summary:
+    get:
+      operationId: getFarmConnectSummary
+      tags: [farmconnect]
+      summary: Get FarmConnect activity summary and reputation stats
+      responses:
+        "200":
+          description: Community summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FarmConnectSummary"
+
+  # ─── NEUROSCORE ─────────────────────────────────────────────────────────────
+  /neuroscore:
+    get:
+      operationId: getNeuroScore
+      tags: [neuroscore]
+      summary: Get farmer NeuroScore and Farm Passport
+      responses:
+        "200":
+          description: NeuroScore data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NeuroScore"
+
+  /neuroscore/breakdown:
+    get:
+      operationId: getNeuroScoreBreakdown
+      tags: [neuroscore]
+      summary: Get detailed NeuroScore factor breakdown
+      responses:
+        "200":
+          description: Score breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NeuroScoreBreakdown"
+
+  /neuroscore/readiness:
+    get:
+      operationId: getReadinessScores
+      tags: [neuroscore]
+      summary: Get loan, investor, insurance, and NGO readiness scores
+      responses:
+        "200":
+          description: Readiness scores
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessScores"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +889,1052 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    # ─── FARMER ─────────────────────────────────────────────────────────────
+    FarmerProfile:
+      type: object
+      required: [id, name, phone, state, lga, farmingType, verificationStatus, neuroScore, communityReputation, credits, joinedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        state:
+          type: string
+        lga:
+          type: string
+        farmingType:
+          type: string
+          enum: [crop, livestock, mixed, cooperative]
+        verificationStatus:
+          type: string
+          enum: [unverified, pending, verified]
+        neuroScore:
+          type: number
+        communityReputation:
+          type: string
+          enum: [Bronze, Silver, Gold, Platinum, Trusted]
+        credits:
+          type: integer
+        joinedAt:
+          type: string
+
+    FarmerProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        state:
+          type: string
+        lga:
+          type: string
+        farmingType:
+          type: string
+
+    # ─── DASHBOARD ───────────────────────────────────────────────────────────
+    DashboardSummary:
+      type: object
+      required: [weather, farmHealth, aiInsights, climateRisks]
+      properties:
+        weather:
+          $ref: "#/components/schemas/WeatherData"
+        farmHealth:
+          $ref: "#/components/schemas/FarmHealthCard"
+        aiInsights:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiInsight"
+        climateRisks:
+          $ref: "#/components/schemas/ClimateRisks"
+
+    WeatherData:
+      type: object
+      required: [temperature, humidity, windSpeed, rainProbability, condition, location]
+      properties:
+        temperature:
+          type: number
+        humidity:
+          type: number
+        windSpeed:
+          type: number
+        rainProbability:
+          type: number
+        condition:
+          type: string
+        location:
+          type: string
+
+    FarmHealthCard:
+      type: object
+      required: [overallScore, cropHealthStatus, livestockHealthStatus, activeFarms, activeCrops, activeAnimals]
+      properties:
+        overallScore:
+          type: number
+        cropHealthStatus:
+          type: string
+          enum: [excellent, good, fair, poor, critical]
+        livestockHealthStatus:
+          type: string
+          enum: [excellent, good, fair, poor, critical]
+        activeFarms:
+          type: integer
+        activeCrops:
+          type: integer
+        activeAnimals:
+          type: integer
+
+    AiInsight:
+      type: object
+      required: [id, type, title, message, priority, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [weather, disease, market, livestock, soil, general]
+        title:
+          type: string
+        message:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        createdAt:
+          type: string
+
+    ClimateRisks:
+      type: object
+      required: [floodRisk, droughtRisk, heatRisk, pestRisk]
+      properties:
+        floodRisk:
+          type: string
+          enum: [low, moderate, high, severe]
+        droughtRisk:
+          type: string
+          enum: [low, moderate, high, severe]
+        heatRisk:
+          type: string
+          enum: [low, moderate, high, severe]
+        pestRisk:
+          type: string
+          enum: [low, moderate, high, severe]
+        recommendation:
+          type: ["string", "null"]
+
+    EmergencyContact:
+      type: object
+      required: [id, type, name, phone, distance]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [police, hospital, veterinary, fire]
+        name:
+          type: string
+        phone:
+          type: string
+        distance:
+          type: number
+        address:
+          type: ["string", "null"]
+
+    # ─── CLIMATE ──────────────────────────────────────────────────────────────
+    ClimateForecast:
+      type: object
+      required: [current, forecast, risks, recommendations]
+      properties:
+        current:
+          $ref: "#/components/schemas/WeatherData"
+        forecast:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayForecast"
+        risks:
+          $ref: "#/components/schemas/ClimateRisks"
+        recommendations:
+          type: array
+          items:
+            type: string
+
+    DayForecast:
+      type: object
+      required: [date, highTemp, lowTemp, condition, rainProbability]
+      properties:
+        date:
+          type: string
+        highTemp:
+          type: number
+        lowTemp:
+          type: number
+        condition:
+          type: string
+        rainProbability:
+          type: number
+
+    # ─── FARMGPT ─────────────────────────────────────────────────────────────
+    Conversation:
+      type: object
+      required: [id, title, language, messageCount, lastMessageAt, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        language:
+          type: string
+          enum: [english, hausa, yoruba, igbo, fulfulde]
+        messageCount:
+          type: integer
+        lastMessageAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    ConversationInput:
+      type: object
+      required: [title, language]
+      properties:
+        title:
+          type: string
+        language:
+          type: string
+          enum: [english, hausa, yoruba, igbo, fulfulde]
+
+    Message:
+      type: object
+      required: [id, conversationId, role, content, createdAt]
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        createdAt:
+          type: string
+
+    MessageInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+
+    MessagePair:
+      type: object
+      required: [userMessage, assistantMessage]
+      properties:
+        userMessage:
+          $ref: "#/components/schemas/Message"
+        assistantMessage:
+          $ref: "#/components/schemas/Message"
+
+    # ─── FARM ─────────────────────────────────────────────────────────────────
+    Farm:
+      type: object
+      required: [id, name, sizeHectares, state, lga, farmType, healthScore, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        sizeHectares:
+          type: number
+        state:
+          type: string
+        lga:
+          type: string
+        lat:
+          type: ["number", "null"]
+        lng:
+          type: ["number", "null"]
+        farmType:
+          type: string
+          enum: [crop, livestock, mixed, aquaculture]
+        healthScore:
+          type: number
+        soilType:
+          type: ["string", "null"]
+        irrigationType:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    FarmInput:
+      type: object
+      required: [name, sizeHectares, state, lga, farmType]
+      properties:
+        name:
+          type: string
+        sizeHectares:
+          type: number
+        state:
+          type: string
+        lga:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        farmType:
+          type: string
+          enum: [crop, livestock, mixed, aquaculture]
+        soilType:
+          type: string
+        irrigationType:
+          type: string
+
+    FarmUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        sizeHectares:
+          type: number
+        soilType:
+          type: string
+        irrigationType:
+          type: string
+
+    FarmSummary:
+      type: object
+      required: [totalFarms, totalHectares, avgHealthScore, topPerformingFarm, recentActivity]
+      properties:
+        totalFarms:
+          type: integer
+        totalHectares:
+          type: number
+        avgHealthScore:
+          type: number
+        topPerformingFarm:
+          type: ["string", "null"]
+        recentActivity:
+          type: array
+          items:
+            type: string
+
+    # ─── CROPS ────────────────────────────────────────────────────────────────
+    Crop:
+      type: object
+      required: [id, farmId, name, variety, stage, plantingDate, healthStatus, healthScore, expectedYieldKg, createdAt]
+      properties:
+        id:
+          type: integer
+        farmId:
+          type: integer
+        name:
+          type: string
+        variety:
+          type: ["string", "null"]
+        stage:
+          type: string
+          enum: [planted, germination, vegetative, flowering, fruiting, harvest, harvested]
+        plantingDate:
+          type: string
+        expectedHarvestDate:
+          type: ["string", "null"]
+        healthStatus:
+          type: string
+          enum: [excellent, good, fair, poor, critical]
+        healthScore:
+          type: number
+        plotSizeHectares:
+          type: ["number", "null"]
+        expectedYieldKg:
+          type: number
+        actualYieldKg:
+          type: ["number", "null"]
+        fertilizerSchedule:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    CropInput:
+      type: object
+      required: [farmId, name, stage, plantingDate, expectedYieldKg]
+      properties:
+        farmId:
+          type: integer
+        name:
+          type: string
+        variety:
+          type: string
+        stage:
+          type: string
+          enum: [planted, germination, vegetative, flowering, fruiting, harvest, harvested]
+        plantingDate:
+          type: string
+        expectedHarvestDate:
+          type: string
+        plotSizeHectares:
+          type: number
+        expectedYieldKg:
+          type: number
+        fertilizerSchedule:
+          type: string
+        notes:
+          type: string
+
+    CropUpdate:
+      type: object
+      properties:
+        stage:
+          type: string
+          enum: [planted, germination, vegetative, flowering, fruiting, harvest, harvested]
+        healthStatus:
+          type: string
+          enum: [excellent, good, fair, poor, critical]
+        healthScore:
+          type: number
+        actualYieldKg:
+          type: number
+        notes:
+          type: string
+
+    # ─── LIVESTOCK ────────────────────────────────────────────────────────────
+    Animal:
+      type: object
+      required: [id, farmId, species, breed, count, healthStatus, healthScore, lastVaccinationDate, createdAt]
+      properties:
+        id:
+          type: integer
+        farmId:
+          type: integer
+        species:
+          type: string
+        breed:
+          type: ["string", "null"]
+        count:
+          type: integer
+        healthStatus:
+          type: string
+          enum: [excellent, good, fair, poor, critical]
+        healthScore:
+          type: number
+        avgWeightKg:
+          type: ["number", "null"]
+        lastVaccinationDate:
+          type: ["string", "null"]
+        nextVaccinationDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    AnimalInput:
+      type: object
+      required: [farmId, species, count]
+      properties:
+        farmId:
+          type: integer
+        species:
+          type: string
+        breed:
+          type: string
+        count:
+          type: integer
+        avgWeightKg:
+          type: number
+        lastVaccinationDate:
+          type: string
+        nextVaccinationDate:
+          type: string
+        notes:
+          type: string
+
+    AnimalUpdate:
+      type: object
+      properties:
+        count:
+          type: integer
+        healthStatus:
+          type: string
+          enum: [excellent, good, fair, poor, critical]
+        healthScore:
+          type: number
+        avgWeightKg:
+          type: number
+        lastVaccinationDate:
+          type: string
+        nextVaccinationDate:
+          type: string
+        notes:
+          type: string
+
+    LivestockSummary:
+      type: object
+      required: [totalAnimals, totalSpecies, avgHealthScore, vaccinationsDueSoon, recentRecords]
+      properties:
+        totalAnimals:
+          type: integer
+        totalSpecies:
+          type: integer
+        avgHealthScore:
+          type: number
+        vaccinationsDueSoon:
+          type: integer
+        recentRecords:
+          type: array
+          items:
+            type: string
+
+    # ─── MARKET ───────────────────────────────────────────────────────────────
+    MarketPrice:
+      type: object
+      required: [id, commodity, pricePerKg, unit, market, state, trend, updatedAt]
+      properties:
+        id:
+          type: integer
+        commodity:
+          type: string
+        pricePerKg:
+          type: number
+        unit:
+          type: string
+        market:
+          type: string
+        state:
+          type: string
+        trend:
+          type: string
+          enum: [rising, falling, stable]
+        changePercent:
+          type: ["number", "null"]
+        updatedAt:
+          type: string
+
+    MarketListing:
+      type: object
+      required: [id, farmerId, farmerName, type, title, description, priceNgn, quantity, unit, state, lga, status, createdAt]
+      properties:
+        id:
+          type: integer
+        farmerId:
+          type: integer
+        farmerName:
+          type: string
+        farmerAvatar:
+          type: ["string", "null"]
+        farmerVerified:
+          type: boolean
+        type:
+          type: string
+          enum: [crop, livestock, input, equipment]
+        title:
+          type: string
+        description:
+          type: string
+        priceNgn:
+          type: number
+        quantity:
+          type: number
+        unit:
+          type: string
+        state:
+          type: string
+        lga:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, sold, expired]
+        createdAt:
+          type: string
+
+    MarketListingInput:
+      type: object
+      required: [type, title, description, priceNgn, quantity, unit]
+      properties:
+        type:
+          type: string
+          enum: [crop, livestock, input, equipment]
+        title:
+          type: string
+        description:
+          type: string
+        priceNgn:
+          type: number
+        quantity:
+          type: number
+        unit:
+          type: string
+        imageUrl:
+          type: string
+
+    MarketSummary:
+      type: object
+      required: [totalListings, activeListings, trendingCommodities, priceAlerts]
+      properties:
+        totalListings:
+          type: integer
+        activeListings:
+          type: integer
+        trendingCommodities:
+          type: array
+          items:
+            type: string
+        priceAlerts:
+          type: array
+          items:
+            type: string
+
+    # ─── FARMCONNECT ─────────────────────────────────────────────────────────
+    CommunityPost:
+      type: object
+      required: [id, authorId, authorName, authorVerified, content, likes, comments, createdAt]
+      properties:
+        id:
+          type: integer
+        authorId:
+          type: integer
+        authorName:
+          type: string
+        authorAvatar:
+          type: ["string", "null"]
+        authorVerified:
+          type: boolean
+        authorReputation:
+          type: string
+        content:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        likes:
+          type: integer
+        comments:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+
+    CommunityPostInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+        imageUrl:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    NearbyFarmer:
+      type: object
+      required: [id, name, farmType, state, lga, neuroScore, communityReputation, verificationStatus, distanceKm]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        farmType:
+          type: string
+        state:
+          type: string
+        lga:
+          type: string
+        neuroScore:
+          type: number
+        communityReputation:
+          type: string
+        verificationStatus:
+          type: string
+        distanceKm:
+          type: number
+
+    FarmerGroup:
+      type: object
+      required: [id, name, type, category, description, memberCount, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          enum: [location, crop, livestock]
+        category:
+          type: string
+        description:
+          type: string
+        memberCount:
+          type: integer
+        imageUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    FarmerGroupInput:
+      type: object
+      required: [name, type, category, description]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [location, crop, livestock]
+        category:
+          type: string
+        description:
+          type: string
+
+    LabourExchange:
+      type: object
+      required: [id, requesterId, requesterName, title, description, activityType, location, dateNeeded, creditsOffered, status, createdAt]
+      properties:
+        id:
+          type: integer
+        requesterId:
+          type: integer
+        requesterName:
+          type: string
+        requesterAvatar:
+          type: ["string", "null"]
+        requesterReputation:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        activityType:
+          type: string
+          enum: [planting, harvesting, land_preparation, irrigation, pest_control, other]
+        location:
+          type: string
+        dateNeeded:
+          type: string
+        workersNeeded:
+          type: integer
+        creditsOffered:
+          type: integer
+        status:
+          type: string
+          enum: [open, filled, completed, cancelled]
+        createdAt:
+          type: string
+
+    LabourExchangeInput:
+      type: object
+      required: [title, description, activityType, location, dateNeeded, workersNeeded, creditsOffered]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        activityType:
+          type: string
+          enum: [planting, harvesting, land_preparation, irrigation, pest_control, other]
+        location:
+          type: string
+        dateNeeded:
+          type: string
+        workersNeeded:
+          type: integer
+        creditsOffered:
+          type: integer
+
+    EquipmentExchange:
+      type: object
+      required: [id, ownerId, ownerName, ownerReputation, equipmentType, name, description, pricePerDayNgn, depositNgn, availableFrom, availableTo, status, createdAt]
+      properties:
+        id:
+          type: integer
+        ownerId:
+          type: integer
+        ownerName:
+          type: string
+        ownerAvatar:
+          type: ["string", "null"]
+        ownerReputation:
+          type: string
+        equipmentType:
+          type: string
+          enum: [tractor, harvester, sprayer, water_pump, irrigation, plough, other]
+        name:
+          type: string
+        description:
+          type: string
+        pricePerDayNgn:
+          type: number
+        depositNgn:
+          type: number
+        location:
+          type: string
+        availableFrom:
+          type: string
+        availableTo:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [available, rented, maintenance]
+        createdAt:
+          type: string
+
+    EquipmentExchangeInput:
+      type: object
+      required: [equipmentType, name, description, pricePerDayNgn, depositNgn, location, availableFrom, availableTo]
+      properties:
+        equipmentType:
+          type: string
+          enum: [tractor, harvester, sprayer, water_pump, irrigation, plough, other]
+        name:
+          type: string
+        description:
+          type: string
+        pricePerDayNgn:
+          type: number
+        depositNgn:
+          type: number
+        location:
+          type: string
+        availableFrom:
+          type: string
+        availableTo:
+          type: string
+        imageUrl:
+          type: string
+
+    SeedExchange:
+      type: object
+      required: [id, sellerId, sellerName, sellerReputation, cropType, variety, listingType, quantityKg, priceNgn, location, status, createdAt]
+      properties:
+        id:
+          type: integer
+        sellerId:
+          type: integer
+        sellerName:
+          type: string
+        sellerAvatar:
+          type: ["string", "null"]
+        sellerReputation:
+          type: string
+        cropType:
+          type: string
+        variety:
+          type: ["string", "null"]
+        listingType:
+          type: string
+          enum: [sell, buy, exchange, donate]
+        quantityKg:
+          type: number
+        priceNgn:
+          type: ["number", "null"]
+        location:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [available, completed, expired]
+        createdAt:
+          type: string
+
+    SeedExchangeInput:
+      type: object
+      required: [cropType, listingType, quantityKg, location]
+      properties:
+        cropType:
+          type: string
+        variety:
+          type: string
+        listingType:
+          type: string
+          enum: [sell, buy, exchange, donate]
+        quantityKg:
+          type: number
+        priceNgn:
+          type: number
+        location:
+          type: string
+        imageUrl:
+          type: string
+
+    CommunityEvent:
+      type: object
+      required: [id, organizerId, organizerName, title, description, eventType, location, eventDate, rsvpCount, createdAt]
+      properties:
+        id:
+          type: integer
+        organizerId:
+          type: integer
+        organizerName:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        eventType:
+          type: string
+          enum: [training, meeting, market_day, farm_visit, other]
+        location:
+          type: string
+        eventDate:
+          type: string
+        rsvpCount:
+          type: integer
+        maxAttendees:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+
+    CommunityEventInput:
+      type: object
+      required: [title, description, eventType, location, eventDate]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        eventType:
+          type: string
+          enum: [training, meeting, market_day, farm_visit, other]
+        location:
+          type: string
+        eventDate:
+          type: string
+        maxAttendees:
+          type: integer
+
+    FarmConnectSummary:
+      type: object
+      required: [totalMembers, activePosts, labourRequestsOpen, equipmentAvailable, seedsAvailable, upcomingEvents, myCredits, myReputation]
+      properties:
+        totalMembers:
+          type: integer
+        activePosts:
+          type: integer
+        labourRequestsOpen:
+          type: integer
+        equipmentAvailable:
+          type: integer
+        seedsAvailable:
+          type: integer
+        upcomingEvents:
+          type: integer
+        myCredits:
+          type: integer
+        myReputation:
+          type: string
+
+    # ─── NEUROSCORE ───────────────────────────────────────────────────────────
+    NeuroScore:
+      type: object
+      required: [score, level, change30Days, farmPassport, lastUpdated]
+      properties:
+        score:
+          type: number
+        level:
+          type: string
+          enum: [Beginner, Developing, Established, Advanced, Elite]
+        change30Days:
+          type: number
+        farmPassport:
+          $ref: "#/components/schemas/FarmPassport"
+        lastUpdated:
+          type: string
+
+    FarmPassport:
+      type: object
+      required: [farmerId, farmerName, verificationStatus, totalFarms, totalHectares, yearsOfFarming, primaryCrops, primaryLivestock, totalYieldKg, totalTransactions]
+      properties:
+        farmerId:
+          type: integer
+        farmerName:
+          type: string
+        verificationStatus:
+          type: string
+        totalFarms:
+          type: integer
+        totalHectares:
+          type: number
+        yearsOfFarming:
+          type: integer
+        primaryCrops:
+          type: array
+          items:
+            type: string
+        primaryLivestock:
+          type: array
+          items:
+            type: string
+        totalYieldKg:
+          type: number
+        totalTransactions:
+          type: integer
+
+    NeuroScoreBreakdown:
+      type: object
+      required: [cropPerformance, livestockPerformance, communityReputation, farmActivity, marketplaceActivity, farmRecords, total]
+      properties:
+        cropPerformance:
+          type: number
+        livestockPerformance:
+          type: number
+        communityReputation:
+          type: number
+        farmActivity:
+          type: number
+        marketplaceActivity:
+          type: number
+        farmRecords:
+          type: number
+        total:
+          type: number
+
+    ReadinessScores:
+      type: object
+      required: [loanReadiness, investorReadiness, insuranceReadiness, ngoReadiness]
+      properties:
+        loanReadiness:
+          $ref: "#/components/schemas/ReadinessScore"
+        investorReadiness:
+          $ref: "#/components/schemas/ReadinessScore"
+        insuranceReadiness:
+          $ref: "#/components/schemas/ReadinessScore"
+        ngoReadiness:
+          $ref: "#/components/schemas/ReadinessScore"
+
+    ReadinessScore:
+      type: object
+      required: [score, level, requirements, tips]
+      properties:
+        score:
+          type: number
+        level:
+          type: string
+          enum: [not_ready, developing, almost_ready, ready]
+        requirements:
+          type: array
+          items:
+            type: string
+        tips:
+          type: array
+          items:
+            type: string
