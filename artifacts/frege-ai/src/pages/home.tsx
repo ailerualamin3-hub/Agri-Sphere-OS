@@ -1,266 +1,409 @@
 import React from "react";
 import { useLocation } from "wouter";
-import { Link } from "wouter";
-import { 
-  CloudRain, 
-  Wind, 
-  Droplets, 
-  Thermometer, 
-  Mic, 
-  Camera, 
-  ShieldAlert, 
-  Phone, 
-  Bell, 
-  ChevronRight,
-  Sprout,
-  Activity
+import {
+  CloudRain, Wind, Droplets, Sun, Cloud, Bell, ChevronRight,
+  Zap, Bot, ScanLine, Activity, Sprout, MapPin, Navigation,
+  Phone, Stethoscope, Shield, Wheat, TrendingUp, TrendingDown,
+  Minus, AlertTriangle, RefreshCw
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  useGetDashboardSummary, 
-  useGetAiInsights, 
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  useGetDashboardSummary,
+  useGetAiInsights,
   useGetEmergencyContacts,
+  useGetMarketPrices,
+  useGetFarmConnectFeed,
   getGetDashboardSummaryQueryKey,
   getGetAiInsightsQueryKey,
-  getGetEmergencyContactsQueryKey
+  getGetEmergencyContactsQueryKey,
+  getGetMarketPricesQueryKey,
+  getGetFarmConnectFeedQueryKey,
 } from "@workspace/api-client-react";
-import { Skeleton } from "@/components/ui/skeleton";
 
-export default function Home() {
-  const [, setLocation] = useLocation();
-  const { data: summary, isLoading: isSummaryLoading } = useGetDashboardSummary({ query: { queryKey: getGetDashboardSummaryQueryKey() } });
-  const { data: insights, isLoading: isInsightsLoading } = useGetAiInsights({ query: { queryKey: getGetAiInsightsQueryKey() } });
-  const { data: emergency, isLoading: isEmergencyLoading } = useGetEmergencyContacts(undefined, { query: { queryKey: getGetEmergencyContactsQueryKey() } });
+const weatherIcons: Record<string, React.ReactNode> = {
+  sunny: <Sun className="w-12 h-12 text-yellow-400" />,
+  cloudy: <Cloud className="w-12 h-12 text-gray-400" />,
+  rainy: <CloudRain className="w-12 h-12 text-blue-400" />,
+  default: <Sun className="w-12 h-12 text-yellow-400" />,
+};
 
+function getWeatherIcon(condition: string) {
+  const c = condition.toLowerCase();
+  if (c.includes("rain") || c.includes("thunder") || c.includes("storm")) return weatherIcons.rainy;
+  if (c.includes("cloud") || c.includes("overcast")) return weatherIcons.cloudy;
+  return weatherIcons.sunny;
+}
+
+function HealthRing({ score, label, color }: { score: number; label: string; color: string }) {
+  const r = 20;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (circ * score) / 100;
   return (
-    <div className="p-4 space-y-6 pb-24 bg-background">
-      {/* Header */}
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-12 w-12 border-2 border-primary/20">
-            <AvatarImage src="https://i.pravatar.cc/150?u=aminu" alt="Aminu Kano" />
-            <AvatarFallback>AK</AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Welcome back, Aminu</h1>
-            <p className="text-xs text-muted-foreground font-medium">Kano State, Nigeria</p>
-          </div>
-        </div>
-        <Button variant="ghost" size="icon" className="rounded-full bg-muted/50 hover:bg-muted">
-          <Bell className="w-5 h-5 text-primary" />
-        </Button>
-      </header>
-
-      {/* Weather Widget */}
-      <section>
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Current Weather</h2>
-        </div>
-        {isSummaryLoading ? (
-          <Skeleton className="h-28 w-full rounded-2xl" />
-        ) : summary?.weather ? (
-          <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-none overflow-hidden relative shadow-lg shadow-primary/20">
-            <div className="absolute right-0 top-0 opacity-10 pointer-events-none">
-              <CloudRain className="w-32 h-32 -mt-4 -mr-4" />
-            </div>
-            <CardContent className="p-4 flex items-center justify-between relative z-10">
-              <div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-black">{summary.weather.temperature}°C</span>
-                </div>
-                <p className="text-sm font-medium opacity-90">{summary.weather.condition}</p>
-                <p className="text-xs opacity-75 mt-1">{summary.weather.location}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs font-medium bg-black/10 p-3 rounded-xl backdrop-blur-sm">
-                <div className="flex items-center gap-1.5">
-                  <Droplets className="w-3.5 h-3.5" /> {summary.weather.humidity}%
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Wind className="w-3.5 h-3.5" /> {summary.weather.windSpeed} km/h
-                </div>
-                <div className="flex items-center gap-1.5 col-span-2">
-                  <CloudRain className="w-3.5 h-3.5" /> {summary.weather.rainProbability}% Rain Prob
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card><CardContent className="p-4 text-center text-sm text-muted-foreground">Weather unavailable</CardContent></Card>
-        )}
-      </section>
-
-      {/* Farm Health Card */}
-      <section>
-        {isSummaryLoading ? (
-          <Skeleton className="h-24 w-full rounded-2xl" />
-        ) : summary?.farmHealth ? (
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="flex-shrink-0 w-16 h-16 rounded-full border-4 border-accent flex items-center justify-center bg-accent/10 relative">
-                <span className="text-xl font-bold text-accent-foreground">{summary.farmHealth.overallScore}</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground">Farm Health</h3>
-                <div className="flex gap-2 mt-1">
-                  <Badge variant="outline" className="text-[10px] bg-primary/5 text-primary border-primary/20">
-                    Crops: {summary.farmHealth.cropHealthStatus}
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px] bg-secondary/5 text-secondary border-secondary/20">
-                    Livestock: {summary.farmHealth.livestockHealthStatus}
-                  </Badge>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => setLocation('/farm')} className="text-muted-foreground">
-                <ChevronRight className="w-5 h-5" />
-              </Button>
-            </CardContent>
-          </Card>
-        ) : null}
-      </section>
-
-      {/* FarmGPT Quick Card */}
-      <section>
-        <Card className="bg-secondary text-secondary-foreground border-none overflow-hidden relative shadow-lg shadow-secondary/20">
-          <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none">
-            <BotIcon className="w-32 h-32 -mb-8 -mr-8" />
-          </div>
-          <CardContent className="p-5 relative z-10">
-            <h3 className="text-lg font-bold mb-1">FarmGPT Assistant</h3>
-            <p className="text-sm opacity-80 mb-4 max-w-[80%]">Get instant answers about crops, diseases, and market prices.</p>
-            <div className="flex gap-2">
-              <Button onClick={() => setLocation('/farmgpt')} className="bg-white text-secondary hover:bg-white/90 shadow-sm font-semibold flex-1">
-                Ask FarmGPT
-              </Button>
-              <Button variant="outline" size="icon" onClick={() => setLocation('/farmgpt')} className="bg-white/10 border-white/20 hover:bg-white/20">
-                <Mic className="w-4 h-4 text-white" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Smart Scans */}
-      <section>
-        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">Smart Scans</h2>
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="bg-card hover:bg-muted/50 transition-colors cursor-pointer border-border/50">
-            <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <Camera className="w-5 h-5" />
-              </div>
-              <span className="text-[11px] font-semibold">Crop Scan</span>
-            </CardContent>
-          </Card>
-          <Card className="bg-card hover:bg-muted/50 transition-colors cursor-pointer border-border/50">
-            <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
-                <Activity className="w-5 h-5" />
-              </div>
-              <span className="text-[11px] font-semibold">Animal Scan</span>
-            </CardContent>
-          </Card>
-          <Card className="bg-card hover:bg-muted/50 transition-colors cursor-pointer border-border/50">
-            <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent-foreground">
-                <Sprout className="w-5 h-5" />
-              </div>
-              <span className="text-[11px] font-semibold">Soil Scan</span>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* AI Insights */}
-      <section>
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">AI Insights</h2>
-        </div>
-        {isInsightsLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-20 w-full rounded-xl" />
-            <Skeleton className="h-20 w-full rounded-xl" />
-          </div>
-        ) : insights?.length ? (
-          <div className="space-y-3">
-            {insights.slice(0, 3).map((insight) => (
-              <Card key={insight.id} className="border-border/50 hover:bg-muted/30 transition-colors">
-                <CardContent className="p-3.5 flex gap-3">
-                  <div className={`w-2 h-full min-h-[40px] rounded-full shrink-0 ${
-                    insight.priority === 'high' || insight.priority === 'urgent' ? 'bg-destructive' :
-                    insight.priority === 'medium' ? 'bg-accent' : 'bg-primary'
-                  }`} />
-                  <div>
-                    <h4 className="text-sm font-semibold">{insight.title}</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{insight.message}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">No new insights right now.</CardContent></Card>
-        )}
-      </section>
-
-      {/* Emergency Locator */}
-      <section>
-        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-          <ShieldAlert className="w-4 h-4" /> Emergency Services
-        </h2>
-        {isEmergencyLoading ? (
-          <Skeleton className="h-16 w-full rounded-xl" />
-        ) : emergency?.length ? (
-          <ScrollArea className="w-full whitespace-nowrap pb-2">
-            <div className="flex w-max gap-3 pr-4">
-              {emergency.map((contact) => (
-                <Card key={contact.id} className="w-[180px] shrink-0 border-border/50">
-                  <CardContent className="p-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-xs font-bold capitalize text-primary">{contact.type}</h4>
-                      <span className="text-[10px] text-muted-foreground">{contact.distance}km</span>
-                    </div>
-                    <p className="text-sm font-semibold truncate">{contact.name}</p>
-                    <Button variant="secondary" size="sm" className="w-full mt-3 h-8 text-xs font-bold">
-                      <Phone className="w-3 h-3 mr-1.5" /> Call
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </ScrollArea>
-        ) : (
-          <Card><CardContent className="p-4 text-center text-sm text-muted-foreground">No emergency contacts nearby.</CardContent></Card>
-        )}
-      </section>
-
+    <div className="flex flex-col items-center gap-1">
+      <svg width="52" height="52" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r={r} fill="none" stroke="#f1f5f9" strokeWidth="6" />
+        <circle
+          cx="26" cy="26" r={r} fill="none"
+          stroke={color} strokeWidth="6"
+          strokeDasharray={circ} strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform="rotate(-90 26 26)"
+          style={{ transition: "stroke-dashoffset 1s ease" }}
+        />
+        <text x="26" y="30" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1e293b">{score}</text>
+      </svg>
+      <span className="text-[10px] font-semibold text-gray-500">{label}</span>
     </div>
   );
 }
 
-function BotIcon(props: any) {
+const nearbyServices = [
+  { type: "Hospital", name: "Murtala Muhammad Specialist Hospital", distance: "2.4 km", icon: Stethoscope, color: "bg-red-50 text-red-500" },
+  { type: "Police", name: "Kano State Police Command", distance: "3.1 km", icon: Shield, color: "bg-blue-50 text-blue-500" },
+  { type: "Veterinary", name: "State Veterinary Clinic, Dala", distance: "1.8 km", icon: Activity, color: "bg-orange-50 text-orange-500" },
+  { type: "Extension", name: "ADP Agricultural Extension Office", distance: "4.2 km", icon: Wheat, color: "bg-green-50 text-green-600" },
+];
+
+export default function Home() {
+  const [, setLocation] = useLocation();
+  const { data: summary, isLoading: isSummaryLoading, error: summaryError, refetch: refetchSummary } = useGetDashboardSummary({ query: { queryKey: getGetDashboardSummaryQueryKey() } });
+  const { data: insights, isLoading: isInsightsLoading } = useGetAiInsights({ query: { queryKey: getGetAiInsightsQueryKey() } });
+  const { data: prices } = useGetMarketPrices({ query: { queryKey: getGetMarketPricesQueryKey() } });
+  const { data: feed } = useGetFarmConnectFeed({ query: { queryKey: getGetFarmConnectFeedQueryKey() } });
+
   return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 8V4H8" />
-      <rect width="16" height="12" x="4" y="8" rx="2" />
-      <path d="M2 14h2" />
-      <path d="M20 14h2" />
-      <path d="M15 13v2" />
-      <path d="M9 13v2" />
-    </svg>
+    <div className="bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="bg-white px-4 pt-12 pb-4 sticky top-0 z-20 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10 border-2 border-green-100">
+              <AvatarImage src="https://i.pravatar.cc/150?u=aminu" alt="Aminu" />
+              <AvatarFallback className="bg-[#16A34A] text-white text-sm font-bold">AK</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Good morning,</p>
+              <h1 className="text-base font-bold text-gray-900 leading-tight">Aminu Kano</h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge className="bg-[#FBBF24]/20 text-amber-700 border-amber-200 text-xs font-semibold px-2 py-0.5">
+              Gold
+            </Badge>
+            <Button variant="ghost" size="icon" className="w-9 h-9 rounded-full bg-gray-50">
+              <Bell className="w-4 h-4 text-gray-600" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 pt-4 pb-6 space-y-5">
+
+        {/* Weather Card */}
+        <section>
+          {isSummaryLoading ? (
+            <Skeleton className="h-36 w-full rounded-2xl" />
+          ) : summaryError ? (
+            <Card className="rounded-2xl border-0 bg-gradient-to-br from-[#1E3A8A] to-[#1e3a8a]/80">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="text-white">
+                  <p className="text-sm font-medium opacity-75">Unable to load weather</p>
+                  <Button variant="ghost" size="sm" className="text-white mt-2 p-0 h-auto" onClick={() => refetchSummary()}>
+                    <RefreshCw className="w-3 h-3 mr-1" /> Retry
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : summary?.weather ? (
+            <Card className="rounded-2xl border-0 bg-gradient-to-br from-[#1E3A8A] to-[#2563eb] overflow-hidden shadow-lg shadow-blue-900/20">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <p className="text-blue-200 text-xs font-medium mb-1 flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> {summary.weather.location}
+                    </p>
+                    <div className="flex items-end gap-2">
+                      <span className="text-white text-5xl font-black leading-none">{summary.weather.temperature}°</span>
+                      <span className="text-blue-200 text-sm font-medium pb-1">{summary.weather.condition}</span>
+                    </div>
+                  </div>
+                  {getWeatherIcon(summary.weather.condition)}
+                </div>
+                <div className="flex gap-4 bg-white/10 rounded-xl p-3 backdrop-blur-sm">
+                  <div className="flex items-center gap-1.5 text-white/90 text-xs">
+                    <Droplets className="w-3.5 h-3.5 text-blue-300" />
+                    <span className="font-semibold">{summary.weather.humidity}%</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-white/90 text-xs">
+                    <Wind className="w-3.5 h-3.5 text-blue-300" />
+                    <span className="font-semibold">{summary.weather.windSpeed} km/h</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-white/90 text-xs">
+                    <CloudRain className="w-3.5 h-3.5 text-blue-300" />
+                    <span className="font-semibold">{summary.weather.rainProbability}% rain</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </section>
+
+        {/* Farm Health */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-900">Farm Health</h2>
+            <button onClick={() => setLocation("/farm")} className="text-xs text-[#16A34A] font-semibold flex items-center gap-0.5">
+              View Details <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          {isSummaryLoading ? (
+            <Skeleton className="h-28 w-full rounded-2xl" />
+          ) : summary?.farmHealth ? (
+            <Card className="rounded-2xl border-0 bg-white shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      {(() => {
+                        const s = Math.round(summary.farmHealth.overallScore);
+                        const color = s >= 75 ? "#16A34A" : s >= 50 ? "#FBBF24" : "#ef4444";
+                        const label = s >= 75 ? "Healthy" : s >= 50 ? "Warning" : "Critical";
+                        const labelColor = s >= 75 ? "bg-green-100 text-green-700" : s >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700";
+                        return (
+                          <>
+                            <div className="relative w-20 h-20">
+                              <svg viewBox="0 0 80 80" className="w-20 h-20 -rotate-90">
+                                <circle cx="40" cy="40" r="32" fill="none" stroke="#f1f5f9" strokeWidth="8" />
+                                <circle cx="40" cy="40" r="32" fill="none" stroke={color} strokeWidth="8"
+                                  strokeDasharray={201} strokeDashoffset={201 - (201 * s) / 100}
+                                  strokeLinecap="round" style={{ transition: "stroke-dashoffset 1s ease" }}
+                                />
+                              </svg>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-xl font-black text-gray-900 leading-none">{s}</span>
+                              </div>
+                            </div>
+                            <div>
+                              <Badge className={`${labelColor} border-0 text-xs font-bold mb-2`}>{label}</Badge>
+                              <p className="text-xs text-gray-500">Overall score</p>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                  <div className="flex gap-4 pl-2">
+                    <HealthRing score={summary.farmHealth.cropHealthScore ?? 82} label="Crops" color="#16A34A" />
+                    <HealthRing score={summary.farmHealth.livestockHealthScore ?? 85} label="Livestock" color="#1E3A8A" />
+                    <HealthRing score={summary.farmHealth.soilHealthScore ?? 73} label="Soil" color="#FBBF24" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </section>
+
+        {/* Quick Scans */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-900">Smart Scan</h2>
+            <button onClick={() => setLocation("/scan")} className="text-xs text-[#16A34A] font-semibold flex items-center gap-0.5">
+              All Scans <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Crop Scan", icon: <Sprout className="w-6 h-6" />, color: "bg-green-50 text-[#16A34A]", type: "crop" },
+              { label: "Animal Scan", icon: <Activity className="w-6 h-6" />, color: "bg-blue-50 text-[#1E3A8A]", type: "animal" },
+              { label: "Soil Scan", icon: <Zap className="w-6 h-6" />, color: "bg-amber-50 text-amber-600", type: "soil" },
+            ].map((item) => (
+              <button
+                key={item.type}
+                onClick={() => setLocation(`/scan?type=${item.type}`)}
+                className="bg-white rounded-2xl p-4 flex flex-col items-center gap-2.5 shadow-sm border border-gray-100 active:scale-95 transition-transform"
+              >
+                <div className={`w-12 h-12 rounded-xl ${item.color} flex items-center justify-center`}>
+                  {item.icon}
+                </div>
+                <span className="text-xs font-semibold text-gray-700">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* FarmGPT Card */}
+        <section>
+          <Card className="rounded-2xl border-0 bg-gradient-to-br from-[#1E3A8A] to-[#1e3a8a]/90 shadow-lg shadow-blue-900/20 overflow-hidden">
+            <CardContent className="p-5 relative">
+              <div className="absolute right-4 top-4 opacity-10">
+                <Bot className="w-20 h-20 text-white" />
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <span className="text-white text-sm font-bold">FarmGPT Assistant</span>
+                  <span className="ml-2 text-[10px] bg-green-400/20 text-green-300 px-1.5 py-0.5 rounded-full font-semibold">Online</span>
+                </div>
+              </div>
+              <p className="text-blue-200 text-xs mb-4 leading-relaxed">Ask anything about your crops, livestock, diseases, weather, or market prices.</p>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setLocation("/farmgpt")}
+                  className="flex-1 bg-white text-[#1E3A8A] hover:bg-blue-50 font-bold text-sm h-9 rounded-xl"
+                >
+                  Ask FarmGPT
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* AI Insights */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-900">AI Insights</h2>
+            <Badge variant="outline" className="text-[10px] font-bold border-green-200 text-green-700 bg-green-50">
+              Live
+            </Badge>
+          </div>
+          {isInsightsLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
+          ) : insights?.length ? (
+            <div className="space-y-2">
+              {insights.slice(0, 4).map((insight, i) => {
+                const isUrgent = insight.priority === "high" || insight.priority === "urgent";
+                const isMed = insight.priority === "medium";
+                return (
+                  <Card key={insight.id ?? i} className="rounded-xl border-0 bg-white shadow-sm">
+                    <CardContent className="p-3.5 flex gap-3 items-start">
+                      <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${isUrgent ? "bg-red-500" : isMed ? "bg-amber-400" : "bg-[#16A34A]"}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-gray-900 leading-tight">{insight.title}</p>
+                        <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed line-clamp-2">{insight.message}</p>
+                      </div>
+                      {isUrgent && <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <Card className="rounded-xl border-0 bg-white shadow-sm">
+              <CardContent className="p-4 text-center text-xs text-gray-400">No new insights right now.</CardContent>
+            </Card>
+          )}
+        </section>
+
+        {/* Market Highlights */}
+        {prices && prices.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-gray-900">Market Prices</h2>
+              <button onClick={() => setLocation("/market")} className="text-xs text-[#16A34A] font-semibold flex items-center gap-0.5">
+                All Prices <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="bg-white rounded-2xl shadow-sm border-0 overflow-hidden">
+              {prices.slice(0, 4).map((price, i) => (
+                <div key={price.id} className={`flex items-center justify-between px-4 py-3 ${i < 3 ? "border-b border-gray-50" : ""}`}>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{price.commodity}</p>
+                    <p className="text-[10px] text-gray-400">per {price.unit}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black text-gray-900">₦{price.pricePerKg?.toLocaleString()}</p>
+                    <div className={`flex items-center justify-end gap-0.5 text-[10px] font-bold ${
+                      price.trend === "rising" ? "text-green-600" : price.trend === "falling" ? "text-red-500" : "text-gray-400"
+                    }`}>
+                      {price.trend === "rising" ? <TrendingUp className="w-3 h-3" /> : price.trend === "falling" ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                      {price.changePercent != null ? `${Math.abs(price.changePercent)}%` : "Stable"}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Nearby Services */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-900">Nearby Services</h2>
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <MapPin className="w-3 h-3" /> Kano State
+            </span>
+          </div>
+          <div className="space-y-2">
+            {nearbyServices.map((svc) => {
+              const Icon = svc.icon;
+              return (
+                <Card key={svc.type} className="rounded-xl border-0 bg-white shadow-sm">
+                  <CardContent className="p-3.5 flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl ${svc.color} flex items-center justify-center shrink-0`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-gray-900 truncate">{svc.name}</p>
+                      <p className="text-[10px] text-gray-400 font-medium">{svc.type} • {svc.distance}</p>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button className="text-[10px] font-bold text-[#1E3A8A] bg-blue-50 px-2.5 py-1.5 rounded-lg flex items-center gap-1">
+                        <Navigation className="w-3 h-3" /> Directions
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Community Highlights */}
+        {feed && feed.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-gray-900">Community</h2>
+              <button onClick={() => setLocation("/community")} className="text-xs text-[#16A34A] font-semibold flex items-center gap-0.5">
+                View All <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {feed.slice(0, 2).map((post) => (
+                <Card key={post.id} className="rounded-xl border-0 bg-white shadow-sm">
+                  <CardContent className="p-3.5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Avatar className="w-7 h-7">
+                        <AvatarImage src={post.authorAvatar || undefined} />
+                        <AvatarFallback className="text-[10px] font-bold bg-green-100 text-green-700">
+                          {post.authorName?.charAt(0) ?? "F"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs font-bold text-gray-900">{post.authorName}</span>
+                      {post.authorVerified && (
+                        <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">Verified</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">{post.content}</p>
+                    <div className="flex gap-3 mt-2 text-[10px] text-gray-400 font-semibold">
+                      <span>❤ {post.likes}</span>
+                      <span>💬 {post.comments}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
   );
 }

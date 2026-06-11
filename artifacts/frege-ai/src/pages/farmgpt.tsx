@@ -1,206 +1,225 @@
-import React, { useState } from "react";
-import { 
-  Bot, 
-  Send, 
-  Mic, 
-  MoreVertical, 
-  Menu
-} from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Bot, Send, Mic, Menu, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { 
-  useGetFarmGptConversations, 
-  useGetFarmGptMessages, 
+import {
+  useGetFarmGptConversations,
+  useGetFarmGptMessages,
   useSendFarmGptMessage,
   getGetFarmGptConversationsQueryKey,
-  getGetFarmGptMessagesQueryKey
+  getGetFarmGptMessagesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
 const SUGGESTED_QUESTIONS = [
   "What should I plant this month?",
   "Why are my leaves turning yellow?",
-  "How many goats should I keep?",
-  "What fertilizer is best for maize?"
+  "How many goats should I keep per hectare?",
+  "Best fertilizer schedule for maize?",
+  "How do I prevent armyworm infestation?",
+  "What is the current maize market price?",
 ];
 
 const LANGUAGES = ["English", "Hausa", "Yoruba", "Igbo", "Fulfulde"];
 
 export default function FarmGpt() {
   const queryClient = useQueryClient();
-  const [activeConversationId, setActiveConversationId] = useState<number | null>(1); // Mock default
+  const [activeConversationId, setActiveConversationId] = useState<number>(1);
   const [inputValue, setInputValue] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("English");
+  const [showSidebar, setShowSidebar] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: conversations } = useGetFarmGptConversations({ query: { queryKey: getGetFarmGptConversationsQueryKey() } });
-  
-  // Conditionally fetch messages if we have an active conversation
   const { data: messages, isLoading: isMessagesLoading } = useGetFarmGptMessages(
-    activeConversationId as number, 
-    { query: { enabled: !!activeConversationId, queryKey: getGetFarmGptMessagesQueryKey(activeConversationId as number) } }
+    activeConversationId,
+    { query: { enabled: !!activeConversationId, queryKey: getGetFarmGptMessagesQueryKey(activeConversationId) } }
   );
-
   const sendMessage = useSendFarmGptMessage();
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, sendMessage.isPending]);
 
   const handleSend = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!inputValue.trim() || !activeConversationId) return;
-
-    sendMessage.mutate({ 
-      id: activeConversationId, 
-      data: { content: inputValue } 
-    }, {
-      onSuccess: () => {
-        setInputValue("");
-        queryClient.invalidateQueries({ queryKey: getGetFarmGptMessagesQueryKey(activeConversationId) });
+    const msg = inputValue.trim();
+    if (!msg || !activeConversationId) return;
+    setInputValue("");
+    sendMessage.mutate(
+      { id: activeConversationId, data: { content: msg } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetFarmGptMessagesQueryKey(activeConversationId) });
+        },
       }
-    });
-  };
-
-  const handleSuggestionClick = (question: string) => {
-    setInputValue(question);
+    );
   };
 
   return (
-    <div className="flex flex-col h-screen bg-muted/20 max-w-[480px] mx-auto pb-[72px]">
-      <header className="p-3 bg-background border-b border-border/50 sticky top-0 z-10 flex items-center justify-between">
+    <div className="flex flex-col h-[calc(100vh-68px)] bg-gray-50">
+      {/* Header */}
+      <div className="bg-white px-4 pt-12 pb-3 border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="w-5 h-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[80%] max-w-sm p-0">
-              <div className="p-4 border-b border-border/50 bg-secondary text-secondary-foreground">
-                <h2 className="font-bold text-lg flex items-center gap-2">
-                  <Bot className="w-5 h-5" /> FarmGPT
-                </h2>
-              </div>
-              <ScrollArea className="h-[calc(100vh-60px)] p-2">
-                <div className="space-y-1">
-                  {conversations?.map((conv) => (
-                    <Button 
-                      key={conv.id} 
-                      variant={activeConversationId === conv.id ? "secondary" : "ghost"}
-                      className="w-full justify-start text-left truncate"
-                      onClick={() => setActiveConversationId(conv.id)}
-                    >
-                      {conv.title}
-                    </Button>
-                  ))}
-                </div>
-              </ScrollArea>
-            </SheetContent>
-          </Sheet>
+          <button
+            onClick={() => setShowSidebar(true)}
+            className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center"
+          >
+            <Menu className="w-4 h-4 text-gray-600" />
+          </button>
           <div>
-            <h1 className="text-lg font-bold flex items-center gap-2">
-              <Bot className="w-5 h-5 text-primary" /> FarmGPT
-            </h1>
-            <div className="flex items-center gap-2 mt-1 overflow-x-auto no-scrollbar w-[250px]">
-              {LANGUAGES.map(lang => (
-                <Badge 
-                  key={lang} 
-                  variant={selectedLanguage === lang ? "default" : "outline"}
-                  className="cursor-pointer text-[10px] py-0 px-2 shrink-0"
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-bold text-gray-900">FarmGPT</h1>
+              <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">Online</span>
+            </div>
+            <div className="flex gap-1.5 mt-0.5 overflow-x-auto no-scrollbar">
+              {LANGUAGES.map((lang) => (
+                <button
+                  key={lang}
                   onClick={() => setSelectedLanguage(lang)}
+                  className={cn(
+                    "text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 transition-colors",
+                    selectedLanguage === lang
+                      ? "bg-[#1E3A8A] text-white"
+                      : "bg-gray-100 text-gray-500"
+                  )}
                 >
                   {lang}
-                </Badge>
+                </button>
               ))}
             </div>
           </div>
         </div>
-        <Button variant="ghost" size="icon">
-          <MoreVertical className="w-5 h-5" />
-        </Button>
-      </header>
+        <button className="w-9 h-9 rounded-xl bg-[#16A34A]/10 flex items-center justify-center">
+          <Plus className="w-4 h-4 text-[#16A34A]" />
+        </button>
+      </div>
 
-      <ScrollArea className="flex-1 p-4">
-        {(!messages || messages.length === 0) ? (
-          <div className="flex flex-col justify-center h-[60vh]">
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Bot className="w-8 h-8 text-primary" />
+      {/* Sidebar Overlay */}
+      {showSidebar && (
+        <div className="fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowSidebar(false)} />
+          <div className="relative w-72 bg-white h-full shadow-xl flex flex-col">
+            <div className="p-4 bg-[#1E3A8A] flex items-center justify-between">
+              <div className="flex items-center gap-2 text-white">
+                <Bot className="w-5 h-5" />
+                <span className="font-bold">Conversations</span>
               </div>
-              <h2 className="text-xl font-bold mb-2">How can I help your farm today?</h2>
-              <p className="text-sm text-muted-foreground">Ask in your preferred language</p>
+              <button onClick={() => setShowSidebar(false)}>
+                <X className="w-5 h-5 text-white" />
+              </button>
             </div>
-            
-            <div className="grid grid-cols-1 gap-2 mt-auto">
+            <div className="flex-1 overflow-y-auto p-3">
+              {conversations?.map((conv) => (
+                <button
+                  key={conv.id}
+                  onClick={() => { setActiveConversationId(conv.id); setShowSidebar(false); }}
+                  className={cn(
+                    "w-full text-left px-3 py-2.5 rounded-xl mb-1 text-sm font-medium transition-colors",
+                    activeConversationId === conv.id
+                      ? "bg-[#16A34A]/10 text-[#16A34A] font-bold"
+                      : "text-gray-600 hover:bg-gray-50"
+                  )}
+                >
+                  {conv.title}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {isMessagesLoading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="flex gap-1">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+              ))}
+            </div>
+          </div>
+        ) : !messages || messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[60%] text-center px-4">
+            <div className="w-16 h-16 bg-[#1E3A8A]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Bot className="w-8 h-8 text-[#1E3A8A]" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">How can I help?</h2>
+            <p className="text-sm text-gray-500 mb-6">Ask me anything about farming in {selectedLanguage}</p>
+            <div className="w-full space-y-2">
               {SUGGESTED_QUESTIONS.map((q, i) => (
-                <Button 
-                  key={i} 
-                  variant="outline" 
-                  className="justify-start text-left h-auto py-3 px-4 bg-background whitespace-normal border-primary/20 hover:bg-primary/5 hover:border-primary/50 text-sm"
-                  onClick={() => handleSuggestionClick(q)}
+                <button
+                  key={i}
+                  onClick={() => { setInputValue(q); }}
+                  className="w-full text-left px-4 py-3 bg-white rounded-xl text-sm font-medium text-gray-700 border border-gray-100 hover:border-[#16A34A]/30 hover:bg-green-50/50 transition-colors shadow-sm"
                 >
                   {q}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 pb-2">
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'ml-auto flex-row-reverse' : ''}`}>
-                {msg.role === 'assistant' && (
-                  <Avatar className="w-8 h-8 shrink-0 bg-primary/10 border border-primary/20">
-                    <AvatarFallback><Bot className="w-4 h-4 text-primary" /></AvatarFallback>
-                  </Avatar>
+              <div key={msg.id} className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                {msg.role === "assistant" && (
+                  <div className="w-8 h-8 rounded-xl bg-[#1E3A8A]/10 flex items-center justify-center shrink-0">
+                    <Bot className="w-4 h-4 text-[#1E3A8A]" />
+                  </div>
                 )}
-                <div className={`p-3 rounded-2xl text-sm shadow-sm ${
-                  msg.role === 'user' 
-                    ? 'bg-primary text-primary-foreground rounded-tr-sm' 
-                    : 'bg-card text-card-foreground border border-border/50 rounded-tl-sm'
-                }`}>
+                <div
+                  className={cn(
+                    "max-w-[78%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm",
+                    msg.role === "user"
+                      ? "bg-[#16A34A] text-white rounded-br-sm font-medium"
+                      : "bg-white text-gray-800 rounded-bl-sm border border-gray-100"
+                  )}
+                >
                   {msg.content}
                 </div>
               </div>
             ))}
             {sendMessage.isPending && (
-              <div className="flex gap-3 max-w-[85%]">
-                 <Avatar className="w-8 h-8 shrink-0 bg-primary/10 border border-primary/20">
-                    <AvatarFallback><Bot className="w-4 h-4 text-primary" /></AvatarFallback>
-                  </Avatar>
-                  <div className="p-3 rounded-2xl bg-card border border-border/50 text-muted-foreground text-sm flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" />
-                    <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                    <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+              <div className="flex gap-2.5 justify-start">
+                <div className="w-8 h-8 rounded-xl bg-[#1E3A8A]/10 flex items-center justify-center shrink-0">
+                  <Bot className="w-4 h-4 text-[#1E3A8A]" />
+                </div>
+                <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                  <div className="flex gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="w-2 h-2 bg-[#1E3A8A]/40 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                    ))}
                   </div>
+                </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
         )}
-      </ScrollArea>
+      </div>
 
-      <div className="p-3 bg-background border-t border-border/50">
-        <form onSubmit={handleSend} className="flex gap-2">
-          <div className="relative flex-1">
-            <Input 
-              placeholder="Message FarmGPT..." 
+      {/* Input Bar */}
+      <div className="bg-white border-t border-gray-100 px-3 py-3">
+        <form onSubmit={handleSend} className="flex gap-2 items-center">
+          <div className="flex-1 flex items-center bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden px-3">
+            <Input
+              placeholder="Ask FarmGPT..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="pr-10 rounded-full bg-muted/50 border-transparent focus-visible:ring-primary focus-visible:border-primary"
+              className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sm py-3 h-auto"
             />
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="icon" 
-              className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 text-muted-foreground hover:text-foreground"
-            >
+            <button type="button" className="text-gray-400 hover:text-gray-600 p-1">
               <Mic className="w-4 h-4" />
-            </Button>
+            </button>
           </div>
-          <Button 
-            type="submit" 
-            size="icon" 
-            className="rounded-full shrink-0" 
+          <Button
+            type="submit"
+            size="icon"
             disabled={!inputValue.trim() || sendMessage.isPending}
+            className="w-11 h-11 rounded-2xl bg-[#16A34A] hover:bg-[#15803d] disabled:opacity-40 shrink-0"
           >
             <Send className="w-4 h-4" />
           </Button>

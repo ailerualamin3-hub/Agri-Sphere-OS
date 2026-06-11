@@ -7,17 +7,19 @@ import Splash from "@/pages/splash";
 import Home from "@/pages/home";
 import FarmGpt from "@/pages/farmgpt";
 import Farm from "@/pages/farm";
-import FarmConnect from "@/pages/farmconnect";
+import Community from "@/pages/community";
 import Market from "@/pages/market";
-import NeuroScore from "@/pages/neuroscore";
+import Profile from "@/pages/profile";
+import Scan from "@/pages/scan";
 import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/layout";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: false,
+      retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 30_000,
     },
   },
 });
@@ -27,34 +29,32 @@ function AppRouter() {
     <Switch>
       <Route path="/" component={Splash} />
       <Route path="/home">
-        <Layout>
-          <Home />
-        </Layout>
+        <Layout><Home /></Layout>
+      </Route>
+      <Route path="/scan">
+        <Layout><Scan /></Layout>
       </Route>
       <Route path="/farmgpt">
-        <Layout>
-          <FarmGpt />
-        </Layout>
+        <Layout><FarmGpt /></Layout>
       </Route>
       <Route path="/farm">
-        <Layout>
-          <Farm />
-        </Layout>
+        <Layout><Farm /></Layout>
       </Route>
-      <Route path="/farmconnect">
-        <Layout>
-          <FarmConnect />
-        </Layout>
+      <Route path="/community">
+        <Layout><Community /></Layout>
       </Route>
       <Route path="/market">
-        <Layout>
-          <Market />
-        </Layout>
+        <Layout><Market /></Layout>
+      </Route>
+      <Route path="/profile">
+        <Layout><Profile /></Layout>
+      </Route>
+      {/* Legacy redirects */}
+      <Route path="/farmconnect">
+        <Layout><Community /></Layout>
       </Route>
       <Route path="/neuroscore">
-        <Layout>
-          <NeuroScore />
-        </Layout>
+        <Layout><Profile /></Layout>
       </Route>
       <Route component={NotFound} />
     </Switch>
