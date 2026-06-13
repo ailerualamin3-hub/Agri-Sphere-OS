@@ -78,6 +78,9 @@ export const GetDashboardSummaryResponse = zod.object({
 }),
   "farmHealth": zod.object({
   "overallScore": zod.number(),
+  "cropHealthScore": zod.number().nullish(),
+  "livestockHealthScore": zod.number().nullish(),
+  "soilHealthScore": zod.number().nullish(),
   "cropHealthStatus": zod.enum(['excellent', 'good', 'fair', 'poor', 'critical']),
   "livestockHealthStatus": zod.enum(['excellent', 'good', 'fair', 'poor', 'critical']),
   "activeFarms": zod.number(),
@@ -133,6 +136,132 @@ export const GetEmergencyContactsResponseItem = zod.object({
   "address": zod.string().nullish()
 })
 export const GetEmergencyContactsResponse = zod.array(GetEmergencyContactsResponseItem)
+
+
+/**
+ * @summary Get government and NGO agricultural opportunities
+ */
+export const GetOpportunitiesResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "provider": zod.string(),
+  "providerType": zod.enum(['government', 'ngo', 'cooperative', 'private']),
+  "opportunityType": zod.enum(['grant', 'subsidy', 'loan', 'training', 'equipment', 'vaccination', 'seed_distribution', 'other']),
+  "eligibleFarmTypes": zod.array(zod.string()),
+  "targetStates": zod.array(zod.string()),
+  "amountNgn": zod.number().nullish(),
+  "amountDescription": zod.string().nullish(),
+  "deadline": zod.string().nullish(),
+  "applicationUrl": zod.string().nullish(),
+  "contactPhone": zod.string().nullish(),
+  "contactEmail": zod.string().nullish(),
+  "requirements": zod.array(zod.string()),
+  "benefits": zod.array(zod.string()),
+  "isActive": zod.boolean(),
+  "isFeatured": zod.boolean(),
+  "viewCount": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+export const GetOpportunitiesResponse = zod.array(GetOpportunitiesResponseItem)
+
+
+/**
+ * @summary Get a single opportunity by ID
+ */
+export const GetOpportunityParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetOpportunityResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "provider": zod.string(),
+  "providerType": zod.enum(['government', 'ngo', 'cooperative', 'private']),
+  "opportunityType": zod.enum(['grant', 'subsidy', 'loan', 'training', 'equipment', 'vaccination', 'seed_distribution', 'other']),
+  "eligibleFarmTypes": zod.array(zod.string()),
+  "targetStates": zod.array(zod.string()),
+  "amountNgn": zod.number().nullish(),
+  "amountDescription": zod.string().nullish(),
+  "deadline": zod.string().nullish(),
+  "applicationUrl": zod.string().nullish(),
+  "contactPhone": zod.string().nullish(),
+  "contactEmail": zod.string().nullish(),
+  "requirements": zod.array(zod.string()),
+  "benefits": zod.array(zod.string()),
+  "isActive": zod.boolean(),
+  "isFeatured": zod.boolean(),
+  "viewCount": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Get farmer scan history
+ */
+export const GetScanHistoryResponseItem = zod.object({
+  "id": zod.number(),
+  "farmerId": zod.number(),
+  "scanType": zod.enum(['crop', 'animal', 'soil']),
+  "imageUrl": zod.string().nullish(),
+  "diagnosis": zod.string(),
+  "confidence": zod.number(),
+  "severity": zod.string(),
+  "description": zod.string(),
+  "recommendations": zod.array(zod.string()),
+  "createdAt": zod.string()
+})
+export const GetScanHistoryResponse = zod.array(GetScanHistoryResponseItem)
+
+
+/**
+ * @summary Save a completed scan result
+ */
+export const SaveScanResultBody = zod.object({
+  "scanType": zod.enum(['crop', 'animal', 'soil']),
+  "imageUrl": zod.string().optional(),
+  "diagnosis": zod.string(),
+  "confidence": zod.number(),
+  "severity": zod.string(),
+  "description": zod.string(),
+  "recommendations": zod.array(zod.string()).optional()
+})
+
+
+/**
+ * @summary Generate AI season planting plan
+ */
+export const GenerateSeasonPlanBody = zod.object({
+  "crop": zod.string(),
+  "state": zod.string().optional(),
+  "farmSizeHectares": zod.number(),
+  "plantingMonth": zod.string().optional()
+})
+
+export const GenerateSeasonPlanResponse = zod.object({
+  "crop": zod.string(),
+  "state": zod.string().optional(),
+  "farmSizeHectares": zod.number(),
+  "plantingWindow": zod.string(),
+  "estimatedHarvestDate": zod.string().optional(),
+  "maturityDays": zod.number(),
+  "waterRequirementMm": zod.number().optional(),
+  "estimatedYieldKg": zod.number(),
+  "estimatedRevenue": zod.number().nullish(),
+  "fertilizerSchedule": zod.array(zod.object({
+
+}).passthrough()),
+  "pestMonitoringSchedule": zod.array(zod.object({
+
+}).passthrough()),
+  "harvestIndicators": zod.array(zod.string()),
+  "weeklyTimeline": zod.array(zod.object({
+
+}).passthrough())
+})
 
 
 /**

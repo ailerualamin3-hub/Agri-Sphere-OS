@@ -50,7 +50,7 @@ export default function FarmGpt() {
     if (!msg || !activeConversationId) return;
     setInputValue("");
     sendMessage.mutate(
-      { id: activeConversationId, data: { content: msg } },
+      { conversationId: activeConversationId, data: { content: msg } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetFarmGptMessagesQueryKey(activeConversationId) });

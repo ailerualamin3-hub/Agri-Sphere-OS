@@ -3,6 +3,7 @@ import {
   Plus, MapPin, Sun, Thermometer, Droplets, Activity,
   AlertTriangle, Bot, CloudRain, Cloud, ChevronRight, Leaf
 } from "lucide-react";
+import { SeasonPlanner } from "@/components/season-planner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ import {
   useGetClimateForecast,
   useGetFarmSummary,
   useGetLivestockSummary,
+  useGenerateSeasonPlan,
   getGetFarmsQueryKey,
   getGetCropsQueryKey,
   getGetLivestockQueryKey,
@@ -22,7 +24,7 @@ import {
   getGetLivestockSummaryQueryKey,
 } from "@workspace/api-client-react";
 
-type Tab = "overview" | "crops" | "livestock" | "climate";
+type Tab = "overview" | "crops" | "livestock" | "climate" | "season";
 
 function HealthBar({ score, color }: { score: number; color: string }) {
   return (
@@ -67,6 +69,7 @@ export default function Farm() {
     { id: "crops", label: "Crops" },
     { id: "livestock", label: "Livestock" },
     { id: "climate", label: "Climate" },
+    { id: "season", label: "Season Plan" },
   ];
 
   return (
@@ -479,6 +482,9 @@ export default function Farm() {
           )}
         </div>
       )}
+
+      {/* Season Plan Tab */}
+      {activeTab === "season" && <SeasonPlanner />}
     </div>
   );
 }

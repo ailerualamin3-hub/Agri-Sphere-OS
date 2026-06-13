@@ -70,7 +70,7 @@ export default function FarmConnect() {
           {summary && (
             <div className="text-right">
               <Badge variant="secondary" className="bg-accent/20 text-accent-foreground font-bold hover:bg-accent/30 border-accent/20">
-                {summary.totalCredits} Credits
+                {summary.myCredits} Credits
               </Badge>
             </div>
           )}
@@ -263,7 +263,7 @@ export default function FarmConnect() {
                   <h3 className="font-bold text-sm mb-1">{item.title}</h3>
                   <p className="text-xs text-muted-foreground mb-3">{item.description}</p>
                   <div className="flex justify-between items-center text-xs font-medium">
-                    <span className="flex items-center gap-1 text-primary"><Calendar className="w-3 h-3"/> {new Date(item.date).toLocaleDateString()}</span>
+                    <span className="flex items-center gap-1 text-primary"><Calendar className="w-3 h-3"/> {new Date(item.eventDate).toLocaleDateString()}</span>
                     <Button size="sm" variant="outline" className="h-7 text-xs">RSVP</Button>
                   </div>
                 </CardContent>

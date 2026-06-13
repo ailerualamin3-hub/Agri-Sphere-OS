@@ -195,7 +195,7 @@ function ReadinessCard({ title, score, level, icon }: { title: string, score: nu
           </div>
           <span className={`text-lg font-black ${colorClass}`}>{score}%</span>
         </div>
-        <Progress value={score} className="h-2 bg-muted" indicatorClassName={bgClass} />
+        <Progress value={score} className="h-2 bg-muted" />
       </CardContent>
     </Card>
   );

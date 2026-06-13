@@ -10,7 +10,8 @@ import Farm from "@/pages/farm";
 import Community from "@/pages/community";
 import Market from "@/pages/market";
 import Profile from "@/pages/profile";
-import Scan from "@/pages/scan";
+import Diagnose from "@/pages/diagnose";
+import Opportunities from "@/pages/opportunities";
 import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/layout";
 
@@ -31,8 +32,8 @@ function AppRouter() {
       <Route path="/home">
         <Layout><Home /></Layout>
       </Route>
-      <Route path="/scan">
-        <Layout><Scan /></Layout>
+      <Route path="/diagnose">
+        <Layout><Diagnose /></Layout>
       </Route>
       <Route path="/farmgpt">
         <Layout><FarmGpt /></Layout>
@@ -49,7 +50,13 @@ function AppRouter() {
       <Route path="/profile">
         <Layout><Profile /></Layout>
       </Route>
+      <Route path="/opportunities">
+        <Layout><Opportunities /></Layout>
+      </Route>
       {/* Legacy redirects */}
+      <Route path="/scan">
+        <Layout><Diagnose /></Layout>
+      </Route>
       <Route path="/farmconnect">
         <Layout><Community /></Layout>
       </Route>

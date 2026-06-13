@@ -50,6 +50,7 @@ import type {
   GetEmergencyContactsParams,
   GetMarketListingsParams,
   GetNearbyFarmersParams,
+  GovernmentOpportunity,
   HealthStatus,
   LabourExchange,
   LabourExchangeInput,
@@ -65,6 +66,10 @@ import type {
   NeuroScore,
   NeuroScoreBreakdown,
   ReadinessScores,
+  ScanResult,
+  ScanResultInput,
+  SeasonPlan,
+  SeasonPlanInput,
   SeedExchange,
   SeedExchangeInput
 } from './api.schemas';
@@ -543,6 +548,379 @@ export function useGetEmergencyContacts<TData = Awaited<ReturnType<typeof getEme
 
 
 
+
+export const getGetOpportunitiesUrl = () => {
+
+
+
+
+  return `/api/opportunities`
+}
+
+/**
+ * @summary Get government and NGO agricultural opportunities
+ */
+export const getOpportunities = async ( options?: RequestInit): Promise<GovernmentOpportunity[]> => {
+
+  return customFetch<GovernmentOpportunity[]>(getGetOpportunitiesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOpportunitiesQueryKey = () => {
+    return [
+    `/api/opportunities`
+    ] as const;
+    }
+
+
+export const getGetOpportunitiesQueryOptions = <TData = Awaited<ReturnType<typeof getOpportunities>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOpportunities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOpportunitiesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOpportunities>>> = ({ signal }) => getOpportunities({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOpportunities>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOpportunitiesQueryResult = NonNullable<Awaited<ReturnType<typeof getOpportunities>>>
+export type GetOpportunitiesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get government and NGO agricultural opportunities
+ */
+
+export function useGetOpportunities<TData = Awaited<ReturnType<typeof getOpportunities>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOpportunities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOpportunitiesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetOpportunityUrl = (id: number,) => {
+
+
+
+
+  return `/api/opportunities/${id}`
+}
+
+/**
+ * @summary Get a single opportunity by ID
+ */
+export const getOpportunity = async (id: number, options?: RequestInit): Promise<GovernmentOpportunity> => {
+
+  return customFetch<GovernmentOpportunity>(getGetOpportunityUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOpportunityQueryKey = (id: number,) => {
+    return [
+    `/api/opportunities/${id}`
+    ] as const;
+    }
+
+
+export const getGetOpportunityQueryOptions = <TData = Awaited<ReturnType<typeof getOpportunity>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOpportunity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOpportunityQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOpportunity>>> = ({ signal }) => getOpportunity(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOpportunity>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOpportunityQueryResult = NonNullable<Awaited<ReturnType<typeof getOpportunity>>>
+export type GetOpportunityQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a single opportunity by ID
+ */
+
+export function useGetOpportunity<TData = Awaited<ReturnType<typeof getOpportunity>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOpportunity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOpportunityQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetScanHistoryUrl = () => {
+
+
+
+
+  return `/api/opportunities/scans/history`
+}
+
+/**
+ * @summary Get farmer scan history
+ */
+export const getScanHistory = async ( options?: RequestInit): Promise<ScanResult[]> => {
+
+  return customFetch<ScanResult[]>(getGetScanHistoryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetScanHistoryQueryKey = () => {
+    return [
+    `/api/opportunities/scans/history`
+    ] as const;
+    }
+
+
+export const getGetScanHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getScanHistory>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getScanHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetScanHistoryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getScanHistory>>> = ({ signal }) => getScanHistory({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getScanHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetScanHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getScanHistory>>>
+export type GetScanHistoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get farmer scan history
+ */
+
+export function useGetScanHistory<TData = Awaited<ReturnType<typeof getScanHistory>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getScanHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetScanHistoryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSaveScanResultUrl = () => {
+
+
+
+
+  return `/api/opportunities/scans`
+}
+
+/**
+ * @summary Save a completed scan result
+ */
+export const saveScanResult = async (scanResultInput: ScanResultInput, options?: RequestInit): Promise<ScanResult> => {
+
+  return customFetch<ScanResult>(getSaveScanResultUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      scanResultInput,)
+  }
+);}
+
+
+
+
+export const getSaveScanResultMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveScanResult>>, TError,{data: BodyType<ScanResultInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveScanResult>>, TError,{data: BodyType<ScanResultInput>}, TContext> => {
+
+const mutationKey = ['saveScanResult'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveScanResult>>, {data: BodyType<ScanResultInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveScanResult(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveScanResultMutationResult = NonNullable<Awaited<ReturnType<typeof saveScanResult>>>
+    export type SaveScanResultMutationBody = BodyType<ScanResultInput>
+    export type SaveScanResultMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Save a completed scan result
+ */
+export const useSaveScanResult = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveScanResult>>, TError,{data: BodyType<ScanResultInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveScanResult>>,
+        TError,
+        {data: BodyType<ScanResultInput>},
+        TContext
+      > => {
+      return useMutation(getSaveScanResultMutationOptions(options));
+    }
+
+export const getGenerateSeasonPlanUrl = () => {
+
+
+
+
+  return `/api/season-planner/generate`
+}
+
+/**
+ * @summary Generate AI season planting plan
+ */
+export const generateSeasonPlan = async (seasonPlanInput: SeasonPlanInput, options?: RequestInit): Promise<SeasonPlan> => {
+
+  return customFetch<SeasonPlan>(getGenerateSeasonPlanUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      seasonPlanInput,)
+  }
+);}
+
+
+
+
+export const getGenerateSeasonPlanMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateSeasonPlan>>, TError,{data: BodyType<SeasonPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateSeasonPlan>>, TError,{data: BodyType<SeasonPlanInput>}, TContext> => {
+
+const mutationKey = ['generateSeasonPlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateSeasonPlan>>, {data: BodyType<SeasonPlanInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateSeasonPlan(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateSeasonPlanMutationResult = NonNullable<Awaited<ReturnType<typeof generateSeasonPlan>>>
+    export type GenerateSeasonPlanMutationBody = BodyType<SeasonPlanInput>
+    export type GenerateSeasonPlanMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate AI season planting plan
+ */
+export const useGenerateSeasonPlan = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateSeasonPlan>>, TError,{data: BodyType<SeasonPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateSeasonPlan>>,
+        TError,
+        {data: BodyType<SeasonPlanInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateSeasonPlanMutationOptions(options));
+    }
 
 export const getGetClimateForecastUrl = () => {
 

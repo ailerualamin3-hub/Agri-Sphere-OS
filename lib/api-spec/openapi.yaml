@@ -128,6 +128,95 @@ paths:
                 items:
                   $ref: "#/components/schemas/EmergencyContact"
 
+  # ─── GOVERNMENT OPPORTUNITIES ─────────────────────────────────────────────
+  /opportunities:
+    get:
+      operationId: getOpportunities
+      tags: [dashboard]
+      summary: Get government and NGO agricultural opportunities
+      responses:
+        "200":
+          description: List of opportunities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GovernmentOpportunity"
+
+  /opportunities/{id}:
+    get:
+      operationId: getOpportunity
+      tags: [dashboard]
+      summary: Get a single opportunity by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Opportunity detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GovernmentOpportunity"
+
+  /opportunities/scans/history:
+    get:
+      operationId: getScanHistory
+      tags: [dashboard]
+      summary: Get farmer scan history
+      responses:
+        "200":
+          description: Scan history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScanResult"
+
+  /opportunities/scans:
+    post:
+      operationId: saveScanResult
+      tags: [dashboard]
+      summary: Save a completed scan result
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScanResultInput"
+      responses:
+        "201":
+          description: Saved scan result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanResult"
+
+  # ─── SEASON PLANNER ─────────────────────────────────────────────────────────
+  /season-planner/generate:
+    post:
+      operationId: generateSeasonPlan
+      tags: [dashboard]
+      summary: Generate AI season planting plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SeasonPlanInput"
+      responses:
+        "200":
+          description: Season plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeasonPlan"
+
   # ─── CLIMATE INTELLIGENCE ──────────────────────────────────────────────────
   /climate/forecast:
     get:
@@ -979,6 +1068,12 @@ components:
       properties:
         overallScore:
           type: number
+        cropHealthScore:
+          type: ["number", "null"]
+        livestockHealthScore:
+          type: ["number", "null"]
+        soilHealthScore:
+          type: ["number", "null"]
         cropHealthStatus:
           type: string
           enum: [excellent, good, fair, poor, critical]
@@ -1938,3 +2033,162 @@ components:
           type: array
           items:
             type: string
+
+    GovernmentOpportunity:
+      type: object
+      required: [id, title, description, provider, providerType, opportunityType, eligibleFarmTypes, targetStates, requirements, benefits, isActive, isFeatured, viewCount, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        provider:
+          type: string
+        providerType:
+          type: string
+          enum: [government, ngo, cooperative, private]
+        opportunityType:
+          type: string
+          enum: [grant, subsidy, loan, training, equipment, vaccination, seed_distribution, other]
+        eligibleFarmTypes:
+          type: array
+          items:
+            type: string
+        targetStates:
+          type: array
+          items:
+            type: string
+        amountNgn:
+          type: ["number", "null"]
+        amountDescription:
+          type: ["string", "null"]
+        deadline:
+          type: ["string", "null"]
+        applicationUrl:
+          type: ["string", "null"]
+        contactPhone:
+          type: ["string", "null"]
+        contactEmail:
+          type: ["string", "null"]
+        requirements:
+          type: array
+          items:
+            type: string
+        benefits:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+        isFeatured:
+          type: boolean
+        viewCount:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    ScanResult:
+      type: object
+      required: [id, farmerId, scanType, diagnosis, confidence, severity, description, recommendations, createdAt]
+      properties:
+        id:
+          type: integer
+        farmerId:
+          type: integer
+        scanType:
+          type: string
+          enum: [crop, animal, soil]
+        imageUrl:
+          type: ["string", "null"]
+        diagnosis:
+          type: string
+        confidence:
+          type: number
+        severity:
+          type: string
+        description:
+          type: string
+        recommendations:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+
+    ScanResultInput:
+      type: object
+      required: [scanType, diagnosis, confidence, severity, description]
+      properties:
+        scanType:
+          type: string
+          enum: [crop, animal, soil]
+        imageUrl:
+          type: string
+        diagnosis:
+          type: string
+        confidence:
+          type: number
+        severity:
+          type: string
+        description:
+          type: string
+        recommendations:
+          type: array
+          items:
+            type: string
+
+    SeasonPlanInput:
+      type: object
+      required: [crop, farmSizeHectares]
+      properties:
+        crop:
+          type: string
+        state:
+          type: string
+        farmSizeHectares:
+          type: number
+        plantingMonth:
+          type: string
+
+    SeasonPlan:
+      type: object
+      required: [crop, farmSizeHectares, plantingWindow, maturityDays, estimatedYieldKg, fertilizerSchedule, pestMonitoringSchedule, harvestIndicators, weeklyTimeline]
+      properties:
+        crop:
+          type: string
+        state:
+          type: string
+        farmSizeHectares:
+          type: number
+        plantingWindow:
+          type: string
+        estimatedHarvestDate:
+          type: string
+        maturityDays:
+          type: integer
+        waterRequirementMm:
+          type: number
+        estimatedYieldKg:
+          type: number
+        estimatedRevenue:
+          type: ["number", "null"]
+        fertilizerSchedule:
+          type: array
+          items:
+            type: object
+        pestMonitoringSchedule:
+          type: array
+          items:
+            type: object
+        harvestIndicators:
+          type: array
+          items:
+            type: string
+        weeklyTimeline:
+          type: array
+          items:
+            type: object

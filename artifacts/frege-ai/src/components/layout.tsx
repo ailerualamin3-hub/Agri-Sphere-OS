@@ -1,14 +1,13 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { Home, ScanLine, Bot, Users, BarChart3, UserCircle } from "lucide-react";
+import { Home, ScanLine, Bot, Tractor, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/home", icon: Home, label: "Home" },
-  { href: "/scan", icon: ScanLine, label: "Scan" },
-  { href: "/farmgpt", icon: Bot, label: "FarmGPT" },
-  { href: "/community", icon: Users, label: "Community" },
-  { href: "/market", icon: BarChart3, label: "Market" },
+  { href: "/diagnose", icon: ScanLine, label: "Diagnose" },
+  { href: "/farmgpt", icon: Bot, label: "FREGE AI" },
+  { href: "/farm", icon: Tractor, label: "Farm" },
   { href: "/profile", icon: UserCircle, label: "Profile" },
 ];
 
@@ -31,7 +30,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center w-14 h-14 rounded-xl transition-all duration-200 relative",
+                  "flex flex-col items-center justify-center w-16 h-14 rounded-xl transition-all duration-200 relative",
                   isActive ? "text-[#16A34A]" : "text-gray-400"
                 )}
               >

@@ -11,6 +11,17 @@ router.get("/summary", async (req, res) => {
     const [farmCount] = await db.select({ count: count() }).from(farmsTable);
     const [avgFarmHealth] = await db.select({ avg: avg(farmsTable.healthScore) }).from(farmsTable);
 
+    const crops = await db.select({ healthScore: cropsTable.healthScore }).from(cropsTable);
+    const animals = await db.select({ healthScore: livestockTable.healthScore }).from(livestockTable);
+
+    const cropHealthScore = crops.length > 0
+      ? Math.round(crops.reduce((sum, c) => sum + (c.healthScore ?? 80), 0) / crops.length)
+      : null;
+    const livestockHealthScore = animals.length > 0
+      ? Math.round(animals.reduce((sum, a) => sum + (a.healthScore ?? 80), 0) / animals.length)
+      : null;
+    const soilHealthScore = farmCount.count > 0 ? 73 : null;
+
     res.json({
       weather: {
         temperature: 31,
@@ -21,9 +32,12 @@ router.get("/summary", async (req, res) => {
         location: "Kano State, Nigeria",
       },
       farmHealth: {
-        overallScore: Number(avgFarmHealth.avg ?? 80),
-        cropHealthStatus: "good",
-        livestockHealthStatus: "good",
+        overallScore: Math.round(Number(avgFarmHealth.avg ?? 0)),
+        cropHealthScore,
+        livestockHealthScore,
+        soilHealthScore,
+        cropHealthStatus: cropHealthScore !== null ? (cropHealthScore >= 75 ? "good" : cropHealthScore >= 50 ? "fair" : "poor") : "good",
+        livestockHealthStatus: livestockHealthScore !== null ? (livestockHealthScore >= 75 ? "good" : livestockHealthScore >= 50 ? "fair" : "poor") : "good",
         activeFarms: farmCount.count,
         activeCrops: cropCount.count,
         activeAnimals: animalCount.count,

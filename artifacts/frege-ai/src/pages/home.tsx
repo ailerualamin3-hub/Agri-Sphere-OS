@@ -3,8 +3,8 @@ import { useLocation } from "wouter";
 import {
   CloudRain, Wind, Droplets, Sun, Cloud, Bell, ChevronRight,
   Zap, Bot, ScanLine, Activity, Sprout, MapPin, Navigation,
-  Phone, Stethoscope, Shield, Wheat, TrendingUp, TrendingDown,
-  Minus, AlertTriangle, RefreshCw
+  Stethoscope, Shield, Wheat, TrendingUp, TrendingDown,
+  Minus, AlertTriangle, RefreshCw, Landmark, Building2
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,28 +17,38 @@ import {
   useGetEmergencyContacts,
   useGetMarketPrices,
   useGetFarmConnectFeed,
+  useGetOpportunities,
+  useGetFarmerProfile,
   getGetDashboardSummaryQueryKey,
   getGetAiInsightsQueryKey,
   getGetEmergencyContactsQueryKey,
   getGetMarketPricesQueryKey,
   getGetFarmConnectFeedQueryKey,
+  getGetOpportunitiesQueryKey,
+  getGetFarmerProfileQueryKey,
 } from "@workspace/api-client-react";
-
-const weatherIcons: Record<string, React.ReactNode> = {
-  sunny: <Sun className="w-12 h-12 text-yellow-400" />,
-  cloudy: <Cloud className="w-12 h-12 text-gray-400" />,
-  rainy: <CloudRain className="w-12 h-12 text-blue-400" />,
-  default: <Sun className="w-12 h-12 text-yellow-400" />,
-};
 
 function getWeatherIcon(condition: string) {
   const c = condition.toLowerCase();
-  if (c.includes("rain") || c.includes("thunder") || c.includes("storm")) return weatherIcons.rainy;
-  if (c.includes("cloud") || c.includes("overcast")) return weatherIcons.cloudy;
-  return weatherIcons.sunny;
+  if (c.includes("rain") || c.includes("thunder") || c.includes("storm"))
+    return <CloudRain className="w-12 h-12 text-blue-300" />;
+  if (c.includes("cloud") || c.includes("overcast"))
+    return <Cloud className="w-12 h-12 text-gray-300" />;
+  return <Sun className="w-12 h-12 text-yellow-300" />;
 }
 
-function HealthRing({ score, label, color }: { score: number; label: string; color: string }) {
+function HealthRing({ score, label, color }: { score: number | null; label: string; color: string }) {
+  if (score === null) {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <svg width="52" height="52" viewBox="0 0 52 52">
+          <circle cx="26" cy="26" r={20} fill="none" stroke="#f1f5f9" strokeWidth="6" />
+          <text x="26" y="30" textAnchor="middle" fontSize="9" fontWeight="600" fill="#94a3b8">—</text>
+        </svg>
+        <span className="text-[10px] font-semibold text-gray-400">{label}</span>
+      </div>
+    );
+  }
   const r = 20;
   const circ = 2 * Math.PI * r;
   const offset = circ - (circ * score) / 100;
@@ -46,12 +56,10 @@ function HealthRing({ score, label, color }: { score: number; label: string; col
     <div className="flex flex-col items-center gap-1">
       <svg width="52" height="52" viewBox="0 0 52 52">
         <circle cx="26" cy="26" r={r} fill="none" stroke="#f1f5f9" strokeWidth="6" />
-        <circle
-          cx="26" cy="26" r={r} fill="none"
+        <circle cx="26" cy="26" r={r} fill="none"
           stroke={color} strokeWidth="6"
           strokeDasharray={circ} strokeDashoffset={offset}
-          strokeLinecap="round"
-          transform="rotate(-90 26 26)"
+          strokeLinecap="round" transform="rotate(-90 26 26)"
           style={{ transition: "stroke-dashoffset 1s ease" }}
         />
         <text x="26" y="30" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1e293b">{score}</text>
@@ -61,12 +69,12 @@ function HealthRing({ score, label, color }: { score: number; label: string; col
   );
 }
 
-const nearbyServices = [
-  { type: "Hospital", name: "Murtala Muhammad Specialist Hospital", distance: "2.4 km", icon: Stethoscope, color: "bg-red-50 text-red-500" },
-  { type: "Police", name: "Kano State Police Command", distance: "3.1 km", icon: Shield, color: "bg-blue-50 text-blue-500" },
-  { type: "Veterinary", name: "State Veterinary Clinic, Dala", distance: "1.8 km", icon: Activity, color: "bg-orange-50 text-orange-500" },
-  { type: "Extension", name: "ADP Agricultural Extension Office", distance: "4.2 km", icon: Wheat, color: "bg-green-50 text-green-600" },
-];
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning,";
+  if (h < 17) return "Good afternoon,";
+  return "Good evening,";
+}
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -74,6 +82,11 @@ export default function Home() {
   const { data: insights, isLoading: isInsightsLoading } = useGetAiInsights({ query: { queryKey: getGetAiInsightsQueryKey() } });
   const { data: prices } = useGetMarketPrices({ query: { queryKey: getGetMarketPricesQueryKey() } });
   const { data: feed } = useGetFarmConnectFeed({ query: { queryKey: getGetFarmConnectFeedQueryKey() } });
+  const { data: emergencyContacts } = useGetEmergencyContacts(undefined, { query: { queryKey: getGetEmergencyContactsQueryKey() } });
+  const { data: opportunities } = useGetOpportunities({ query: { queryKey: getGetOpportunitiesQueryKey() } });
+  const { data: profile } = useGetFarmerProfile({ query: { queryKey: getGetFarmerProfileQueryKey() } });
+
+  const featuredOpps = opportunities?.filter((o) => o.isFeatured).slice(0, 2) ?? [];
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -82,12 +95,14 @@ export default function Home() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 border-2 border-green-100">
-              <AvatarImage src="https://i.pravatar.cc/150?u=aminu" alt="Aminu" />
-              <AvatarFallback className="bg-[#16A34A] text-white text-sm font-bold">AK</AvatarFallback>
+              <AvatarImage src="https://i.pravatar.cc/150?u=aminu" alt="Farmer" />
+              <AvatarFallback className="bg-[#16A34A] text-white text-sm font-bold">
+                {profile?.name?.charAt(0) ?? "A"}
+              </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-xs text-gray-500 font-medium">Good morning,</p>
-              <h1 className="text-base font-bold text-gray-900 leading-tight">Aminu Kano</h1>
+              <p className="text-xs text-gray-500 font-medium">{greeting()}</p>
+              <h1 className="text-base font-bold text-gray-900 leading-tight">{profile?.name ?? "Aminu Kano"}</h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -103,19 +118,17 @@ export default function Home() {
 
       <div className="px-4 pt-4 pb-6 space-y-5">
 
-        {/* Weather Card */}
+        {/* 1. Weather Card */}
         <section>
           {isSummaryLoading ? (
             <Skeleton className="h-36 w-full rounded-2xl" />
           ) : summaryError ? (
             <Card className="rounded-2xl border-0 bg-gradient-to-br from-[#1E3A8A] to-[#1e3a8a]/80">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="text-white">
-                  <p className="text-sm font-medium opacity-75">Unable to load weather</p>
-                  <Button variant="ghost" size="sm" className="text-white mt-2 p-0 h-auto" onClick={() => refetchSummary()}>
-                    <RefreshCw className="w-3 h-3 mr-1" /> Retry
-                  </Button>
-                </div>
+              <CardContent className="p-4 text-white">
+                <p className="text-sm font-medium opacity-75">Unable to load weather</p>
+                <Button variant="ghost" size="sm" className="text-white mt-2 p-0 h-auto" onClick={() => refetchSummary()}>
+                  <RefreshCw className="w-3 h-3 mr-1" /> Retry
+                </Button>
               </CardContent>
             </Card>
           ) : summary?.weather ? (
@@ -152,7 +165,7 @@ export default function Home() {
           ) : null}
         </section>
 
-        {/* Farm Health */}
+        {/* 2. Farm Health */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-gray-900">Farm Health</h2>
@@ -197,9 +210,9 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="flex gap-4 pl-2">
-                    <HealthRing score={summary.farmHealth.cropHealthScore ?? 82} label="Crops" color="#16A34A" />
-                    <HealthRing score={summary.farmHealth.livestockHealthScore ?? 85} label="Livestock" color="#1E3A8A" />
-                    <HealthRing score={summary.farmHealth.soilHealthScore ?? 73} label="Soil" color="#FBBF24" />
+                    <HealthRing score={summary.farmHealth.cropHealthScore ?? null} label="Crops" color="#16A34A" />
+                    <HealthRing score={summary.farmHealth.livestockHealthScore ?? null} label="Animals" color="#1E3A8A" />
+                    <HealthRing score={summary.farmHealth.soilHealthScore ?? null} label="Soil" color="#FBBF24" />
                   </div>
                 </div>
               </CardContent>
@@ -207,23 +220,23 @@ export default function Home() {
           ) : null}
         </section>
 
-        {/* Quick Scans */}
+        {/* 3. Quick Diagnose */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold text-gray-900">Smart Scan</h2>
-            <button onClick={() => setLocation("/scan")} className="text-xs text-[#16A34A] font-semibold flex items-center gap-0.5">
+            <h2 className="text-sm font-bold text-gray-900">Quick Diagnose</h2>
+            <button onClick={() => setLocation("/diagnose")} className="text-xs text-[#16A34A] font-semibold flex items-center gap-0.5">
               All Scans <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: "Crop Scan", icon: <Sprout className="w-6 h-6" />, color: "bg-green-50 text-[#16A34A]", type: "crop" },
-              { label: "Animal Scan", icon: <Activity className="w-6 h-6" />, color: "bg-blue-50 text-[#1E3A8A]", type: "animal" },
-              { label: "Soil Scan", icon: <Zap className="w-6 h-6" />, color: "bg-amber-50 text-amber-600", type: "soil" },
+              { label: "Crop", icon: <Sprout className="w-6 h-6" />, color: "bg-green-50 text-[#16A34A]", type: "crop" },
+              { label: "Animal", icon: <Activity className="w-6 h-6" />, color: "bg-blue-50 text-[#1E3A8A]", type: "animal" },
+              { label: "Soil", icon: <Zap className="w-6 h-6" />, color: "bg-amber-50 text-amber-600", type: "soil" },
             ].map((item) => (
               <button
                 key={item.type}
-                onClick={() => setLocation(`/scan?type=${item.type}`)}
+                onClick={() => setLocation(`/diagnose`)}
                 className="bg-white rounded-2xl p-4 flex flex-col items-center gap-2.5 shadow-sm border border-gray-100 active:scale-95 transition-transform"
               >
                 <div className={`w-12 h-12 rounded-xl ${item.color} flex items-center justify-center`}>
@@ -235,7 +248,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* FarmGPT Card */}
+        {/* 4. FREGE AI Card */}
         <section>
           <Card className="rounded-2xl border-0 bg-gradient-to-br from-[#1E3A8A] to-[#1e3a8a]/90 shadow-lg shadow-blue-900/20 overflow-hidden">
             <CardContent className="p-5 relative">
@@ -247,24 +260,22 @@ export default function Home() {
                   <Bot className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <span className="text-white text-sm font-bold">FarmGPT Assistant</span>
+                  <span className="text-white text-sm font-bold">FREGE AI Assistant</span>
                   <span className="ml-2 text-[10px] bg-green-400/20 text-green-300 px-1.5 py-0.5 rounded-full font-semibold">Online</span>
                 </div>
               </div>
               <p className="text-blue-200 text-xs mb-4 leading-relaxed">Ask anything about your crops, livestock, diseases, weather, or market prices.</p>
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setLocation("/farmgpt")}
-                  className="flex-1 bg-white text-[#1E3A8A] hover:bg-blue-50 font-bold text-sm h-9 rounded-xl"
-                >
-                  Ask FarmGPT
-                </Button>
-              </div>
+              <Button
+                onClick={() => setLocation("/farmgpt")}
+                className="w-full bg-white text-[#1E3A8A] hover:bg-blue-50 font-bold text-sm h-9 rounded-xl"
+              >
+                Ask FREGE AI
+              </Button>
             </CardContent>
           </Card>
         </section>
 
-        {/* AI Insights */}
+        {/* 5. AI Insights */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-gray-900">AI Insights</h2>
@@ -303,7 +314,64 @@ export default function Home() {
           )}
         </section>
 
-        {/* Market Highlights */}
+        {/* 6. Government Opportunities */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-900">Govt Opportunities</h2>
+            <button onClick={() => setLocation("/opportunities")} className="text-xs text-[#16A34A] font-semibold flex items-center gap-0.5">
+              View All <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          {featuredOpps.length > 0 ? (
+            <div className="space-y-3">
+              {featuredOpps.map((opp) => (
+                <Card key={opp.id} className="rounded-2xl border-0 bg-white shadow-sm overflow-hidden">
+                  <div className="h-0.5 bg-gradient-to-r from-[#16A34A] to-[#1E3A8A]" />
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#1E3A8A]/10 flex items-center justify-center shrink-0">
+                        <Building2 className="w-5 h-5 text-[#1E3A8A]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-gray-900 leading-tight line-clamp-1">{opp.title}</p>
+                        <p className="text-[10px] text-gray-400 font-semibold mt-0.5">{opp.provider.split(" / ")[0]}</p>
+                        {opp.amountDescription && (
+                          <p className="text-[11px] font-bold text-[#16A34A] mt-1">{opp.amountDescription}</p>
+                        )}
+                      </div>
+                      <button onClick={() => setLocation("/opportunities")} className="text-[#16A34A]">
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              <button
+                onClick={() => setLocation("/opportunities")}
+                className="w-full py-3 rounded-2xl bg-[#1E3A8A]/5 text-[#1E3A8A] text-xs font-bold flex items-center justify-center gap-1.5"
+              >
+                <Landmark className="w-3.5 h-3.5" /> See All {opportunities?.length ?? 0} Opportunities
+              </button>
+            </div>
+          ) : (
+            <Card className="rounded-2xl border-0 bg-gradient-to-r from-[#1E3A8A]/5 to-[#16A34A]/5 shadow-sm">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#1E3A8A]/10 flex items-center justify-center shrink-0">
+                  <Landmark className="w-5 h-5 text-[#1E3A8A]" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-bold text-gray-900">Government & NGO Programmes</p>
+                  <p className="text-[10px] text-gray-500">Grants, subsidies, training & equipment for farmers</p>
+                </div>
+                <button onClick={() => setLocation("/opportunities")} className="text-[#16A34A]">
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </CardContent>
+            </Card>
+          )}
+        </section>
+
+        {/* 7. Market Prices */}
         {prices && prices.length > 0 && (
           <section>
             <div className="flex items-center justify-between mb-3">
@@ -334,7 +402,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* Nearby Services */}
+        {/* 8. Nearby Services */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-gray-900">Nearby Services</h2>
@@ -342,29 +410,48 @@ export default function Home() {
               <MapPin className="w-3 h-3" /> Kano State
             </span>
           </div>
-          <div className="space-y-2">
-            {nearbyServices.map((svc) => {
-              const Icon = svc.icon;
-              return (
-                <Card key={svc.type} className="rounded-xl border-0 bg-white shadow-sm">
-                  <CardContent className="p-3.5 flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl ${svc.color} flex items-center justify-center shrink-0`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-gray-900 truncate">{svc.name}</p>
-                      <p className="text-[10px] text-gray-400 font-medium">{svc.type} • {svc.distance}</p>
-                    </div>
-                    <div className="flex gap-1.5">
-                      <button className="text-[10px] font-bold text-[#1E3A8A] bg-blue-50 px-2.5 py-1.5 rounded-lg flex items-center gap-1">
-                        <Navigation className="w-3 h-3" /> Directions
-                      </button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+          {emergencyContacts && emergencyContacts.length > 0 ? (
+            <div className="space-y-2">
+              {emergencyContacts.map((contact: any) => {
+                const iconMap: Record<string, React.ReactNode> = {
+                  hospital: <Stethoscope className="w-5 h-5" />,
+                  police: <Shield className="w-5 h-5" />,
+                  veterinary: <Activity className="w-5 h-5" />,
+                  extension: <Wheat className="w-5 h-5" />,
+                  fire: <AlertTriangle className="w-5 h-5" />,
+                };
+                const colorMap: Record<string, string> = {
+                  hospital: "bg-red-50 text-red-500",
+                  police: "bg-blue-50 text-blue-500",
+                  veterinary: "bg-orange-50 text-orange-500",
+                  extension: "bg-green-50 text-green-600",
+                  fire: "bg-amber-50 text-amber-600",
+                };
+                const icon = iconMap[contact.type] ?? <Shield className="w-5 h-5" />;
+                const color = colorMap[contact.type] ?? "bg-gray-50 text-gray-500";
+                return (
+                  <Card key={contact.id} className="rounded-xl border-0 bg-white shadow-sm">
+                    <CardContent className="p-3.5 flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center shrink-0`}>
+                        {icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-gray-900 truncate">{contact.name}</p>
+                        <p className="text-[10px] text-gray-400 font-medium capitalize">{contact.type} • {contact.distance} km away</p>
+                      </div>
+                      <a href={`tel:${contact.phone}`} className="text-[10px] font-bold text-[#1E3A8A] bg-blue-50 px-2.5 py-1.5 rounded-lg flex items-center gap-1 shrink-0">
+                        <Navigation className="w-3 h-3" /> Call
+                      </a>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <Card className="rounded-xl border-0 bg-white shadow-sm">
+              <CardContent className="p-4 text-center text-xs text-gray-400">No nearby services data available yet.</CardContent>
+            </Card>
+          )}
         </section>
 
         {/* Community Highlights */}

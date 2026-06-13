@@ -98,6 +98,12 @@ export const FarmHealthCardLivestockHealthStatus = {
 
 export interface FarmHealthCard {
   overallScore: number;
+  /** @nullable */
+  cropHealthScore?: number | null;
+  /** @nullable */
+  livestockHealthScore?: number | null;
+  /** @nullable */
+  soilHealthScore?: number | null;
   cropHealthStatus: FarmHealthCardCropHealthStatus;
   livestockHealthStatus: FarmHealthCardLivestockHealthStatus;
   activeFarms: number;
@@ -1009,6 +1015,132 @@ export interface ReadinessScores {
   investorReadiness: ReadinessScore;
   insuranceReadiness: ReadinessScore;
   ngoReadiness: ReadinessScore;
+}
+
+export type GovernmentOpportunityProviderType = typeof GovernmentOpportunityProviderType[keyof typeof GovernmentOpportunityProviderType];
+
+
+export const GovernmentOpportunityProviderType = {
+  government: 'government',
+  ngo: 'ngo',
+  cooperative: 'cooperative',
+  private: 'private',
+} as const;
+
+export type GovernmentOpportunityOpportunityType = typeof GovernmentOpportunityOpportunityType[keyof typeof GovernmentOpportunityOpportunityType];
+
+
+export const GovernmentOpportunityOpportunityType = {
+  grant: 'grant',
+  subsidy: 'subsidy',
+  loan: 'loan',
+  training: 'training',
+  equipment: 'equipment',
+  vaccination: 'vaccination',
+  seed_distribution: 'seed_distribution',
+  other: 'other',
+} as const;
+
+export interface GovernmentOpportunity {
+  id: number;
+  title: string;
+  description: string;
+  provider: string;
+  providerType: GovernmentOpportunityProviderType;
+  opportunityType: GovernmentOpportunityOpportunityType;
+  eligibleFarmTypes: string[];
+  targetStates: string[];
+  /** @nullable */
+  amountNgn?: number | null;
+  /** @nullable */
+  amountDescription?: string | null;
+  /** @nullable */
+  deadline?: string | null;
+  /** @nullable */
+  applicationUrl?: string | null;
+  /** @nullable */
+  contactPhone?: string | null;
+  /** @nullable */
+  contactEmail?: string | null;
+  requirements: string[];
+  benefits: string[];
+  isActive: boolean;
+  isFeatured: boolean;
+  viewCount: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type ScanResultScanType = typeof ScanResultScanType[keyof typeof ScanResultScanType];
+
+
+export const ScanResultScanType = {
+  crop: 'crop',
+  animal: 'animal',
+  soil: 'soil',
+} as const;
+
+export interface ScanResult {
+  id: number;
+  farmerId: number;
+  scanType: ScanResultScanType;
+  /** @nullable */
+  imageUrl?: string | null;
+  diagnosis: string;
+  confidence: number;
+  severity: string;
+  description: string;
+  recommendations: string[];
+  createdAt: string;
+}
+
+export type ScanResultInputScanType = typeof ScanResultInputScanType[keyof typeof ScanResultInputScanType];
+
+
+export const ScanResultInputScanType = {
+  crop: 'crop',
+  animal: 'animal',
+  soil: 'soil',
+} as const;
+
+export interface ScanResultInput {
+  scanType: ScanResultInputScanType;
+  imageUrl?: string;
+  diagnosis: string;
+  confidence: number;
+  severity: string;
+  description: string;
+  recommendations?: string[];
+}
+
+export interface SeasonPlanInput {
+  crop: string;
+  state?: string;
+  farmSizeHectares: number;
+  plantingMonth?: string;
+}
+
+export type SeasonPlanFertilizerScheduleItem = { [key: string]: unknown };
+
+export type SeasonPlanPestMonitoringScheduleItem = { [key: string]: unknown };
+
+export type SeasonPlanWeeklyTimelineItem = { [key: string]: unknown };
+
+export interface SeasonPlan {
+  crop: string;
+  state?: string;
+  farmSizeHectares: number;
+  plantingWindow: string;
+  estimatedHarvestDate?: string;
+  maturityDays: number;
+  waterRequirementMm?: number;
+  estimatedYieldKg: number;
+  /** @nullable */
+  estimatedRevenue?: number | null;
+  fertilizerSchedule: SeasonPlanFertilizerScheduleItem[];
+  pestMonitoringSchedule: SeasonPlanPestMonitoringScheduleItem[];
+  harvestIndicators: string[];
+  weeklyTimeline: SeasonPlanWeeklyTimelineItem[];
 }
 
 export type GetEmergencyContactsParams = {

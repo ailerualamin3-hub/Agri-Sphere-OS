@@ -10,6 +10,12 @@ import type { FarmHealthCardLivestockHealthStatus } from './farmHealthCardLivest
 
 export interface FarmHealthCard {
   overallScore: number;
+  /** @nullable */
+  cropHealthScore?: number | null;
+  /** @nullable */
+  livestockHealthScore?: number | null;
+  /** @nullable */
+  soilHealthScore?: number | null;
   cropHealthStatus: FarmHealthCardCropHealthStatus;
   livestockHealthStatus: FarmHealthCardLivestockHealthStatus;
   activeFarms: number;

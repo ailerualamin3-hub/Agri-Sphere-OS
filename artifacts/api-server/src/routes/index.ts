@@ -10,6 +10,8 @@ import livestockRouter from "./livestock";
 import marketRouter from "./market";
 import farmconnectRouter from "./farmconnect";
 import neuroscoreRouter from "./neuroscore";
+import opportunitiesRouter from "./opportunities";
+import seasonPlannerRouter from "./season-planner";
 
 const router: IRouter = Router();
 
@@ -24,5 +26,7 @@ router.use("/livestock", livestockRouter);
 router.use("/market", marketRouter);
 router.use("/farmconnect", farmconnectRouter);
 router.use("/neuroscore", neuroscoreRouter);
+router.use("/opportunities", opportunitiesRouter);
+router.use("/season-planner", seasonPlannerRouter);
 
 export default router;
