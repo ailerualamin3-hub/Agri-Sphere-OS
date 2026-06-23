@@ -2,11 +2,12 @@ import React from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth";
 import {
-  CloudRain, Wind, Droplets, Sun, Cloud, Bell, ChevronRight,
+  CloudRain, Wind, Droplets, Sun, Cloud, ChevronRight,
   Zap, Bot, ScanLine, Activity, Sprout, MapPin, Navigation,
   Stethoscope, Shield, Wheat, TrendingUp, TrendingDown,
   Minus, AlertTriangle, RefreshCw, Landmark, Building2
 } from "lucide-react";
+import { NotificationBell, NotificationPanel, useNotifications } from "@/components/notification-panel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -80,6 +81,7 @@ function greeting() {
 export default function Home() {
   const [, setLocation] = useLocation();
   const { farmer: authFarmer } = useAuth();
+  const { state: notifState, panelOpen, setPanelOpen, markRead, markAllRead, deleteNotification } = useNotifications();
   const { data: summary, isLoading: isSummaryLoading, error: summaryError, refetch: refetchSummary } = useGetDashboardSummary({ query: { queryKey: getGetDashboardSummaryQueryKey() } });
   const { data: insights, isLoading: isInsightsLoading } = useGetAiInsights({ query: { queryKey: getGetAiInsightsQueryKey() } });
   const { data: prices } = useGetMarketPrices({ query: { queryKey: getGetMarketPricesQueryKey() } });
@@ -92,6 +94,14 @@ export default function Home() {
 
   return (
     <div className="bg-gray-50 min-h-screen">
+      <NotificationPanel
+        isOpen={panelOpen}
+        onClose={() => setPanelOpen(false)}
+        state={notifState}
+        onMarkRead={markRead}
+        onMarkAllRead={markAllRead}
+        onDelete={deleteNotification}
+      />
       {/* Header */}
       <div className="bg-white px-4 pt-12 pb-4 sticky top-0 z-20 shadow-sm">
         <div className="flex items-center justify-between">
@@ -113,9 +123,7 @@ export default function Home() {
                 {profile?.communityReputation ?? authFarmer?.communityReputation}
               </Badge>
             )}
-            <Button variant="ghost" size="icon" className="w-9 h-9 rounded-full bg-gray-50">
-              <Bell className="w-4 h-4 text-gray-600" />
-            </Button>
+            <NotificationBell unreadCount={notifState.unreadCount} onClick={() => setPanelOpen(true)} />
           </div>
         </div>
       </div>

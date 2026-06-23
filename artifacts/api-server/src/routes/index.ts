@@ -14,6 +14,7 @@ import farmconnectRouter from "./farmconnect";
 import neuroscoreRouter from "./neuroscore";
 import opportunitiesRouter from "./opportunities";
 import seasonPlannerRouter from "./season-planner";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -33,5 +34,6 @@ router.use("/farmconnect", requireAuth, farmconnectRouter);
 router.use("/neuroscore", requireAuth, neuroscoreRouter);
 router.use("/opportunities", requireAuth, opportunitiesRouter);
 router.use("/season-planner", requireAuth, seasonPlannerRouter);
+router.use("/notifications", requireAuth, notificationsRouter);
 
 export default router;
