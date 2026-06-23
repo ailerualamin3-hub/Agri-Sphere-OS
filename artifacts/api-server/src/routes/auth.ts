@@ -258,4 +258,117 @@ router.post("/logout", (_req, res) => {
   res.json({ message: "Logged out successfully" });
 });
 
+// ─── Phone OTP ─────────────────────────────────────────────────────────────
+
+router.post("/phone/send-otp", async (req, res) => {
+  try {
+    const { phone } = req.body as { phone?: string };
+    if (!phone?.trim()) {
+      res.status(400).json({ error: "Phone number is required" });
+      return;
+    }
+    const normalized = phone.trim().replace(/\s+/g, "");
+
+    const [existing] = await db
+      .select({ id: farmersTable.id, name: farmersTable.name })
+      .from(farmersTable)
+      .where(eq(farmersTable.phone, normalized))
+      .limit(1);
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    if (existing) {
+      await db
+        .update(farmersTable)
+        .set({ phoneOtp: otp, phoneOtpExpiry: expiry })
+        .where(eq(farmersTable.id, existing.id));
+    } else {
+      await db
+        .insert(farmersTable)
+        .values({
+          name: "Farmer",
+          phone: normalized,
+          phoneOtp: otp,
+          phoneOtpExpiry: expiry,
+        });
+    }
+
+    res.json({
+      otp,
+      isNewUser: !existing,
+      note: "In production this code would be sent by SMS. Use this code to sign in.",
+      message: `OTP sent to ${normalized}`,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Send phone OTP failed");
+    res.status(500).json({ error: "Failed to send OTP. Please try again." });
+  }
+});
+
+router.post("/phone/verify-otp", async (req, res) => {
+  try {
+    const { phone, otp, name } = req.body as {
+      phone?: string;
+      otp?: string;
+      name?: string;
+    };
+
+    if (!phone?.trim() || !otp?.trim()) {
+      res.status(400).json({ error: "Phone number and OTP are required" });
+      return;
+    }
+    const normalized = phone.trim().replace(/\s+/g, "");
+
+    const [farmer] = await db
+      .select()
+      .from(farmersTable)
+      .where(eq(farmersTable.phone, normalized))
+      .limit(1);
+
+    if (!farmer) {
+      res.status(400).json({ error: "No OTP request found for this number. Please request a new code." });
+      return;
+    }
+
+    if (farmer.phoneOtp !== otp.trim()) {
+      res.status(400).json({ error: "Incorrect code. Please check and try again." });
+      return;
+    }
+
+    if (!farmer.phoneOtpExpiry || farmer.phoneOtpExpiry < new Date()) {
+      res.status(400).json({ error: "This code has expired. Please request a new one." });
+      return;
+    }
+
+    const isNewUser = !farmer.passwordHash && !farmer.email;
+    const finalName = isNewUser && name?.trim() ? name.trim() : farmer.name;
+
+    const [updated] = await db
+      .update(farmersTable)
+      .set({ phoneOtp: null, phoneOtpExpiry: null, name: finalName, verificationStatus: "verified" })
+      .where(eq(farmersTable.id, farmer.id))
+      .returning();
+
+    const email = updated.email ?? `phone_${updated.id}@frege.ai`;
+    const token = signToken(updated.id, email);
+
+    res.json({
+      token,
+      isNewUser,
+      farmer: {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        phone: updated.phone,
+        state: updated.state,
+        neuroScore: updated.neuroScore,
+      },
+    });
+  } catch (err) {
+    req.log.error({ err }, "Verify phone OTP failed");
+    res.status(500).json({ error: "Verification failed. Please try again." });
+  }
+});
+
 export default router;

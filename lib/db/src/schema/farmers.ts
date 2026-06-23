@@ -10,6 +10,8 @@ export const farmersTable = pgTable("farmers", {
   passwordHash: text("password_hash"),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry", { withTimezone: true }),
+  phoneOtp: text("phone_otp"),
+  phoneOtpExpiry: timestamp("phone_otp_expiry", { withTimezone: true }),
   avatarUrl: text("avatar_url"),
   state: text("state").notNull().default("Kano"),
   lga: text("lga").notNull().default("Kano Municipal"),
