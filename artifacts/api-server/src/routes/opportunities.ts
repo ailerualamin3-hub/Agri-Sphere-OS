@@ -1,11 +1,9 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { governmentOpportunitiesTable, scanResultsTable } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 const router = Router();
-
-const CURRENT_FARMER_ID = 1;
 
 router.get("/", async (req, res) => {
   try {
@@ -42,10 +40,11 @@ router.get("/:id", async (req, res) => {
 
 router.get("/scans/history", async (req, res) => {
   try {
+    const farmerId = req.farmerId!;
     const scans = await db
       .select()
       .from(scanResultsTable)
-      .where(eq(scanResultsTable.farmerId, CURRENT_FARMER_ID))
+      .where(eq(scanResultsTable.farmerId, farmerId))
       .orderBy(desc(scanResultsTable.createdAt));
     res.json(scans);
   } catch (err) {
@@ -56,11 +55,12 @@ router.get("/scans/history", async (req, res) => {
 
 router.post("/scans", async (req, res) => {
   try {
+    const farmerId = req.farmerId!;
     const { scanType, imageUrl, diagnosis, confidence, severity, description, recommendations } = req.body;
     const [result] = await db
       .insert(scanResultsTable)
       .values({
-        farmerId: CURRENT_FARMER_ID,
+        farmerId,
         scanType,
         imageUrl: imageUrl ?? null,
         diagnosis,

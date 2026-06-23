@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { db, conversationsTable, messagesTable } from "@workspace/db";
+import { db, conversationsTable, messagesTable, scanResultsTable } from "@workspace/db";
 import { eq, desc, count } from "drizzle-orm";
 
 const router = Router();
@@ -36,27 +36,26 @@ const LANGUAGE_SYSTEM_ADDENDUM: Record<string, string> = {
   English: "",
 };
 
-async function getGeminiResponse(
-  userMessage: string,
-  language: string,
-  history: Array<{ role: string; content: string }>
-): Promise<string> {
+async function buildSystemPromptWithHistory(farmerId: number, language: string): Promise<string> {
   const languageAddendum = LANGUAGE_SYSTEM_ADDENDUM[language] ?? "";
-  const fullSystemPrompt = SYSTEM_PROMPT + languageAddendum;
+  try {
+    const recentScans = await db
+      .select()
+      .from(scanResultsTable)
+      .where(eq(scanResultsTable.farmerId, farmerId))
+      .orderBy(desc(scanResultsTable.createdAt))
+      .limit(5);
 
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    systemInstruction: fullSystemPrompt,
-  });
+    if (recentScans.length === 0) return SYSTEM_PROMPT + languageAddendum;
 
-  const chatHistory = history.slice(-10).map((msg) => ({
-    role: msg.role === "assistant" ? "model" : "user",
-    parts: [{ text: msg.content }],
-  }));
+    const scanSummary = recentScans.map((s) =>
+      `- ${new Date(s.createdAt).toLocaleDateString()}: ${s.scanType} scan — ${s.diagnosis} (${s.severity} severity, ${s.confidence}% confidence). Recommendations: ${s.recommendations.slice(0, 2).join("; ")}`
+    ).join("\n");
 
-  const chat = model.startChat({ history: chatHistory });
-  const result = await chat.sendMessage(userMessage);
-  return result.response.text();
+    return SYSTEM_PROMPT + `\n\nFARM HISTORY CONTEXT (recent scans from this farmer's farm — use this to give personalized advice):\n${scanSummary}` + languageAddendum;
+  } catch {
+    return SYSTEM_PROMPT + languageAddendum;
+  }
 }
 
 async function ensureDefaultConversation(farmerId: number, language: string): Promise<number> {
@@ -131,11 +130,9 @@ router.post("/conversations/:conversationId/messages", async (req, res) => {
   try {
     const conversationId = Number(req.params.conversationId);
     const { content, language } = req.body;
+    const farmerId = req.farmerId!;
 
-    const [userMsg] = await db
-      .insert(messagesTable)
-      .values({ conversationId, role: "user", content })
-      .returning();
+    const [userMsg] = await db.insert(messagesTable).values({ conversationId, role: "user", content }).returning();
 
     const historyRows = await db
       .select()
@@ -147,31 +144,30 @@ router.post("/conversations/:conversationId/messages", async (req, res) => {
       .filter((m) => m.id !== userMsg.id)
       .map((m) => ({ role: m.role, content: m.content }));
 
+    const systemPrompt = await buildSystemPromptWithHistory(farmerId, language || "English");
+
     let aiContent: string;
     try {
-      aiContent = await getGeminiResponse(content, language || "English", history);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction: systemPrompt });
+      const chatHistory = history.slice(-10).map((msg) => ({
+        role: msg.role === "assistant" ? "model" : "user",
+        parts: [{ text: msg.content }],
+      }));
+      const chat = model.startChat({ history: chatHistory });
+      const result = await chat.sendMessage(content);
+      aiContent = result.response.text();
     } catch (geminiErr) {
       req.log.error({ geminiErr }, "Gemini API error");
-      aiContent = "I'm sorry, I'm having trouble connecting right now. Please check your internet connection and try again.";
+      aiContent = "I'm sorry, I'm having trouble connecting right now. Please try again in a moment.";
     }
 
-    const [aiMsg] = await db
-      .insert(messagesTable)
-      .values({ conversationId, role: "assistant", content: aiContent })
-      .returning();
+    const [aiMsg] = await db.insert(messagesTable).values({ conversationId, role: "assistant", content: aiContent }).returning();
+    await db.update(conversationsTable).set({ updatedAt: new Date() }).where(eq(conversationsTable.id, conversationId));
 
-    await db
-      .update(conversationsTable)
-      .set({ updatedAt: new Date() })
-      .where(eq(conversationsTable.id, conversationId));
-
-    if (historyRows.filter((m) => m.id !== userMsg.id).length === 0) {
+    if (history.length === 0) {
       const words = content.split(" ").slice(0, 6).join(" ");
       const shortTitle = words.length > 40 ? words.slice(0, 40) + "…" : words;
-      await db
-        .update(conversationsTable)
-        .set({ title: shortTitle })
-        .where(eq(conversationsTable.id, conversationId));
+      await db.update(conversationsTable).set({ title: shortTitle }).where(eq(conversationsTable.id, conversationId));
     }
 
     res.status(201).json({
@@ -181,6 +177,70 @@ router.post("/conversations/:conversationId/messages", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to send message");
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/conversations/:conversationId/messages/stream", async (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  const sendEvent = (data: object) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+  try {
+    const conversationId = Number(req.params.conversationId);
+    const { content, language } = req.body;
+    const farmerId = req.farmerId!;
+
+    const [userMsg] = await db.insert(messagesTable).values({ conversationId, role: "user", content }).returning();
+    sendEvent({ type: "user_message", message: { id: userMsg.id, role: "user", content, conversationId, createdAt: userMsg.createdAt.toISOString() } });
+
+    const historyRows = await db
+      .select()
+      .from(messagesTable)
+      .where(eq(messagesTable.conversationId, conversationId))
+      .orderBy(messagesTable.createdAt);
+
+    const history = historyRows
+      .filter((m) => m.id !== userMsg.id)
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    const systemPrompt = await buildSystemPromptWithHistory(farmerId, language || "English");
+
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction: systemPrompt });
+    const chatHistory = history.slice(-10).map((msg) => ({
+      role: msg.role === "assistant" ? "model" : "user",
+      parts: [{ text: msg.content }],
+    }));
+
+    const chat = model.startChat({ history: chatHistory });
+    const streamResult = await chat.sendMessageStream(content);
+
+    let fullText = "";
+    for await (const chunk of streamResult.stream) {
+      const chunkText = chunk.text();
+      if (chunkText) {
+        fullText += chunkText;
+        sendEvent({ type: "chunk", text: chunkText });
+      }
+    }
+
+    const [aiMsg] = await db.insert(messagesTable).values({ conversationId, role: "assistant", content: fullText }).returning();
+    await db.update(conversationsTable).set({ updatedAt: new Date() }).where(eq(conversationsTable.id, conversationId));
+
+    if (history.length === 0) {
+      const words = content.split(" ").slice(0, 6).join(" ");
+      const shortTitle = words.length > 40 ? words.slice(0, 40) + "…" : words;
+      await db.update(conversationsTable).set({ title: shortTitle }).where(eq(conversationsTable.id, conversationId));
+    }
+
+    sendEvent({ type: "done", message: { id: aiMsg.id, role: "assistant", content: fullText, conversationId, createdAt: aiMsg.createdAt.toISOString() } });
+  } catch (err) {
+    sendEvent({ type: "error", message: "Connection error. Please try again." });
+  } finally {
+    res.end();
   }
 });
 

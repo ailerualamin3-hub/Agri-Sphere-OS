@@ -15,6 +15,7 @@ import neuroscoreRouter from "./neuroscore";
 import opportunitiesRouter from "./opportunities";
 import seasonPlannerRouter from "./season-planner";
 import notificationsRouter from "./notifications";
+import scanRouter from "./scan";
 
 const router: IRouter = Router();
 
@@ -35,5 +36,6 @@ router.use("/neuroscore", requireAuth, neuroscoreRouter);
 router.use("/opportunities", requireAuth, opportunitiesRouter);
 router.use("/season-planner", requireAuth, seasonPlannerRouter);
 router.use("/notifications", requireAuth, notificationsRouter);
+router.use("/scan", requireAuth, scanRouter);
 
 export default router;

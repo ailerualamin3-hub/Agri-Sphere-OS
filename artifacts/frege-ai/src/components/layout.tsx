@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/home", icon: Home, label: "Home" },
-  { href: "/diagnose", icon: ScanLine, label: "Diagnose" },
+  { href: "/diagnose", icon: ScanLine, label: "Farm Check" },
   { href: "/farmgpt", icon: Bot, label: "FREGE AI" },
   { href: "/farm", icon: Tractor, label: "Farm" },
   { href: "/profile", icon: UserCircle, label: "Profile" },

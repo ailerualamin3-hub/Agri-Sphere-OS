@@ -6,7 +6,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   useGetFarmGptConversations,
   useGetFarmGptMessages,
-  useSendFarmGptMessage,
   getGetFarmGptConversationsQueryKey,
   getGetFarmGptMessagesQueryKey,
 } from "@workspace/api-client-react";
@@ -92,15 +91,17 @@ export default function FarmGpt() {
   const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
   const [showSidebar, setShowSidebar] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingText, setStreamingText] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const { data: conversations, refetch: refetchConversations } = useGetFarmGptConversations({ query: { queryKey: getGetFarmGptConversationsQueryKey() } });
   const { data: messages, isLoading: isMessagesLoading } = useGetFarmGptMessages(
     activeConversationId ?? 0,
     { query: { enabled: !!activeConversationId, queryKey: getGetFarmGptMessagesQueryKey(activeConversationId ?? 0) } }
   );
-  const sendMessage = useSendFarmGptMessage();
 
   useEffect(() => {
     if (conversations && conversations.length > 0 && !activeConversationId) {
@@ -110,22 +111,77 @@ export default function FarmGpt() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, sendMessage.isPending]);
+  }, [messages, isStreaming, streamingText]);
 
-  const handleSend = (e?: React.FormEvent) => {
+  const streamMessage = useCallback(async (convId: number, content: string, lang: string) => {
+    setIsStreaming(true);
+    setStreamingText("");
+
+    const token = localStorage.getItem(TOKEN_KEY);
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const res = await fetch(`/api/farmgpt/conversations/${convId}/messages/stream`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ content, language: lang }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok || !res.body) {
+        throw new Error("Stream failed");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === "chunk") {
+              setStreamingText((prev) => prev + data.text);
+            } else if (data.type === "done") {
+              setIsStreaming(false);
+              setStreamingText("");
+              queryClient.invalidateQueries({ queryKey: getGetFarmGptMessagesQueryKey(convId) });
+              queryClient.invalidateQueries({ queryKey: getGetFarmGptConversationsQueryKey() });
+            } else if (data.type === "error") {
+              throw new Error(data.message);
+            }
+          } catch {}
+        }
+      }
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
+        toast({ title: "Could not reach FarmGPT", description: "Please check your connection and try again.", variant: "destructive" });
+      }
+    } finally {
+      setIsStreaming(false);
+      setStreamingText("");
+    }
+  }, [queryClient, toast]);
+
+  const handleSend = useCallback((e?: React.FormEvent) => {
     e?.preventDefault();
     const msg = inputValue.trim();
-    if (!msg || !activeConversationId) return;
+    if (!msg || !activeConversationId || isStreaming) return;
     setInputValue("");
-    sendMessage.mutate(
-      { conversationId: activeConversationId, data: { content: msg, language: selectedLang.label } as { content: string } },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getGetFarmGptMessagesQueryKey(activeConversationId) });
-        },
-      }
-    );
-  };
+    streamMessage(activeConversationId, msg, selectedLang.label);
+  }, [inputValue, activeConversationId, isStreaming, selectedLang, streamMessage]);
 
   const handleNewConversation = async () => {
     try {
@@ -168,9 +224,7 @@ export default function FarmGpt() {
       }
     };
     recognition.onresult = (e) => {
-      const transcript = Array.from(e.results)
-        .map((r) => r[0].transcript)
-        .join("");
+      const transcript = Array.from(e.results).map((r) => r[0].transcript).join("");
       setInputValue(transcript);
       if (e.results[0].isFinal) {
         setIsListening(false);
@@ -183,14 +237,16 @@ export default function FarmGpt() {
   }, [isListening, selectedLang, toast]);
 
   useEffect(() => {
-    return () => { recognitionRef.current?.stop(); };
+    return () => {
+      recognitionRef.current?.stop();
+      abortRef.current?.abort();
+    };
   }, []);
 
   const suggested = SUGGESTED_QUESTIONS[selectedLang.label] ?? SUGGESTED_QUESTIONS.English;
 
   return (
     <div className="flex flex-col h-[calc(100vh-68px)] bg-gray-50">
-      {/* Header */}
       <div className="bg-white px-4 pt-12 pb-3 border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <button onClick={() => setShowSidebar(true)} className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center">
@@ -223,7 +279,6 @@ export default function FarmGpt() {
         </button>
       </div>
 
-      {/* Sidebar */}
       {showSidebar && (
         <div className="fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowSidebar(false)} />
@@ -264,7 +319,6 @@ export default function FarmGpt() {
         </div>
       )}
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {isMessagesLoading ? (
           <div className="flex justify-center items-center h-32">
@@ -309,22 +363,30 @@ export default function FarmGpt() {
                 </div>
               </div>
             ))}
-            {sendMessage.isPending && (
+
+            {isStreaming && (
               <div className="flex gap-2.5 justify-start">
                 <div className="w-8 h-8 rounded-xl bg-[#1E3A8A]/10 flex items-center justify-center shrink-0">
                   <Bot className="w-4 h-4 text-[#1E3A8A]" />
                 </div>
-                <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-                  <div className="flex gap-1">{[0, 1, 2].map((i) => <div key={i} className="w-2 h-2 bg-[#1E3A8A]/40 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}</div>
+                <div className="max-w-[78%] px-4 py-3 rounded-2xl rounded-bl-sm text-sm leading-relaxed shadow-sm bg-white border border-gray-100 text-gray-800">
+                  {streamingText ? (
+                    <span className="whitespace-pre-line">
+                      {streamingText}
+                      <span className="inline-block w-0.5 h-4 bg-[#1E3A8A] ml-0.5 align-middle animate-pulse" />
+                    </span>
+                  ) : (
+                    <div className="flex gap-1">{[0, 1, 2].map((i) => <div key={i} className="w-2 h-2 bg-[#1E3A8A]/40 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}</div>
+                  )}
                 </div>
               </div>
             )}
+
             <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
-      {/* Input Bar */}
       <div className="bg-white border-t border-gray-100 px-3 py-3">
         {isListening && (
           <div className="flex items-center gap-2 px-3 py-2 mb-2 bg-red-50 rounded-xl border border-red-100">
@@ -356,7 +418,7 @@ export default function FarmGpt() {
           <Button
             type="submit"
             size="icon"
-            disabled={!inputValue.trim() || sendMessage.isPending}
+            disabled={!inputValue.trim() || isStreaming}
             className="w-11 h-11 rounded-2xl bg-[#16A34A] hover:bg-[#15803d] disabled:opacity-40 shrink-0"
           >
             <Send className="w-4 h-4" />
