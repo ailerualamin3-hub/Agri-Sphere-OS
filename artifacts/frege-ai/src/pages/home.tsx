@@ -1,5 +1,6 @@
 import React from "react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/contexts/auth";
 import {
   CloudRain, Wind, Droplets, Sun, Cloud, Bell, ChevronRight,
   Zap, Bot, ScanLine, Activity, Sprout, MapPin, Navigation,
@@ -78,6 +79,7 @@ function greeting() {
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  const { farmer: authFarmer } = useAuth();
   const { data: summary, isLoading: isSummaryLoading, error: summaryError, refetch: refetchSummary } = useGetDashboardSummary({ query: { queryKey: getGetDashboardSummaryQueryKey() } });
   const { data: insights, isLoading: isInsightsLoading } = useGetAiInsights({ query: { queryKey: getGetAiInsightsQueryKey() } });
   const { data: prices } = useGetMarketPrices({ query: { queryKey: getGetMarketPricesQueryKey() } });
@@ -95,20 +97,22 @@ export default function Home() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 border-2 border-green-100">
-              <AvatarImage src="https://i.pravatar.cc/150?u=aminu" alt="Farmer" />
+              <AvatarImage src={profile?.avatarUrl ?? authFarmer?.avatarUrl ?? ""} alt="Farmer" />
               <AvatarFallback className="bg-[#16A34A] text-white text-sm font-bold">
-                {profile?.name?.charAt(0) ?? "A"}
+                {(profile?.name ?? authFarmer?.name ?? "F").charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
               <p className="text-xs text-gray-500 font-medium">{greeting()}</p>
-              <h1 className="text-base font-bold text-gray-900 leading-tight">{profile?.name ?? "Aminu Kano"}</h1>
+              <h1 className="text-base font-bold text-gray-900 leading-tight">{profile?.name ?? authFarmer?.name ?? ""}</h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge className="bg-[#FBBF24]/20 text-amber-700 border-amber-200 text-xs font-semibold px-2 py-0.5">
-              Gold
-            </Badge>
+            {(profile?.communityReputation ?? authFarmer?.communityReputation) && (
+              <Badge className="bg-[#FBBF24]/20 text-amber-700 border-amber-200 text-xs font-semibold px-2 py-0.5">
+                {profile?.communityReputation ?? authFarmer?.communityReputation}
+              </Badge>
+            )}
             <Button variant="ghost" size="icon" className="w-9 h-9 rounded-full bg-gray-50">
               <Bell className="w-4 h-4 text-gray-600" />
             </Button>

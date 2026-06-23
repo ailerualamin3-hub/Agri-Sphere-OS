@@ -1,1 +1,2 @@
-- [Auth System](auth-system.md) — JWT + bcryptjs auth; token in localStorage; frontend-gated routes; backend data routes still use farmerId=1 hardcode.
+- [Auth & onboarding architecture](auth-onboarding.md) — JWT auth, onboardingComplete gate, all data routes require Bearer token via index.ts middleware
+- [Route auth pattern](route-auth-pattern.md) — requireAuth at router level in index.ts; crops/livestock filter via farmer's farm IDs using inArray(cropsTable.farmId, farmIds)

@@ -61,6 +61,8 @@ router.post("/register", async (req, res) => {
         phone: farmer.phone,
         state: farmer.state,
         neuroScore: farmer.neuroScore,
+        communityReputation: farmer.communityReputation,
+        onboardingComplete: farmer.onboardingComplete,
       },
     });
   } catch (err) {
@@ -111,6 +113,8 @@ router.post("/login", async (req, res) => {
         state: farmer.state,
         neuroScore: farmer.neuroScore,
         avatarUrl: farmer.avatarUrl,
+        communityReputation: farmer.communityReputation,
+        onboardingComplete: farmer.onboardingComplete,
       },
     });
   } catch (err) {
@@ -157,7 +161,9 @@ router.get("/me", async (req, res) => {
       farmingType: farmer.farmingType,
       neuroScore: farmer.neuroScore,
       avatarUrl: farmer.avatarUrl,
+      communityReputation: farmer.communityReputation,
       verificationStatus: farmer.verificationStatus,
+      onboardingComplete: farmer.onboardingComplete,
     });
   } catch (err) {
     req.log.error({ err }, "Me failed");
@@ -363,6 +369,8 @@ router.post("/phone/verify-otp", async (req, res) => {
         phone: updated.phone,
         state: updated.state,
         neuroScore: updated.neuroScore,
+        communityReputation: updated.communityReputation,
+        onboardingComplete: updated.onboardingComplete,
       },
     });
   } catch (err) {

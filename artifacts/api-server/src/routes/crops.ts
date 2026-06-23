@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, cropsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, cropsTable, farmsTable } from "@workspace/db";
+import { eq, inArray } from "drizzle-orm";
 
 const router = Router();
 
@@ -24,9 +24,16 @@ function cropToJson(c: typeof cropsTable.$inferSelect) {
   };
 }
 
+async function getFarmerFarmIds(farmerId: number): Promise<number[]> {
+  const farms = await db.select({ id: farmsTable.id }).from(farmsTable).where(eq(farmsTable.farmerId, farmerId));
+  return farms.map((f) => f.id);
+}
+
 router.get("/", async (req, res) => {
   try {
-    const crops = await db.select().from(cropsTable);
+    const farmIds = await getFarmerFarmIds(req.farmerId!);
+    if (farmIds.length === 0) return res.json([]);
+    const crops = await db.select().from(cropsTable).where(inArray(cropsTable.farmId, farmIds));
     res.json(crops.map(cropToJson));
   } catch (err) {
     req.log.error({ err }, "Failed to get crops");
@@ -36,8 +43,16 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
+    const farmIds = await getFarmerFarmIds(req.farmerId!);
     const { farmId, name, variety, stage, plantingDate, expectedHarvestDate, plotSizeHectares, expectedYieldKg, fertilizerSchedule, notes } = req.body;
-    const [crop] = await db.insert(cropsTable).values({ farmId, name, variety, stage, plantingDate, expectedHarvestDate, plotSizeHectares, expectedYieldKg, fertilizerSchedule, notes }).returning();
+    if (!farmIds.includes(Number(farmId))) {
+      res.status(403).json({ error: "Farm not found or not owned by you" });
+      return;
+    }
+    const [crop] = await db
+      .insert(cropsTable)
+      .values({ farmId, name, variety, stage, plantingDate, expectedHarvestDate, plotSizeHectares, expectedYieldKg, fertilizerSchedule, notes })
+      .returning();
     res.status(201).json(cropToJson(crop));
   } catch (err) {
     req.log.error({ err }, "Failed to create crop");
@@ -47,8 +62,9 @@ router.post("/", async (req, res) => {
 
 router.get("/:cropId", async (req, res) => {
   try {
+    const farmIds = await getFarmerFarmIds(req.farmerId!);
     const [crop] = await db.select().from(cropsTable).where(eq(cropsTable.id, Number(req.params.cropId)));
-    if (!crop) return res.status(404).json({ error: "Crop not found" });
+    if (!crop || !farmIds.includes(crop.farmId)) return res.status(404).json({ error: "Crop not found" });
     res.json(cropToJson(crop));
   } catch (err) {
     req.log.error({ err }, "Failed to get crop");
@@ -58,9 +74,15 @@ router.get("/:cropId", async (req, res) => {
 
 router.patch("/:cropId", async (req, res) => {
   try {
+    const farmIds = await getFarmerFarmIds(req.farmerId!);
+    const [existing] = await db.select().from(cropsTable).where(eq(cropsTable.id, Number(req.params.cropId)));
+    if (!existing || !farmIds.includes(existing.farmId)) return res.status(404).json({ error: "Crop not found" });
     const { stage, healthStatus, healthScore, actualYieldKg, notes } = req.body;
-    const [crop] = await db.update(cropsTable).set({ stage, healthStatus, healthScore, actualYieldKg, notes }).where(eq(cropsTable.id, Number(req.params.cropId))).returning();
-    if (!crop) return res.status(404).json({ error: "Crop not found" });
+    const [crop] = await db
+      .update(cropsTable)
+      .set({ stage, healthStatus, healthScore, actualYieldKg, notes })
+      .where(eq(cropsTable.id, Number(req.params.cropId)))
+      .returning();
     res.json(cropToJson(crop));
   } catch (err) {
     req.log.error({ err }, "Failed to update crop");
@@ -70,6 +92,9 @@ router.patch("/:cropId", async (req, res) => {
 
 router.delete("/:cropId", async (req, res) => {
   try {
+    const farmIds = await getFarmerFarmIds(req.farmerId!);
+    const [existing] = await db.select({ farmId: cropsTable.farmId }).from(cropsTable).where(eq(cropsTable.id, Number(req.params.cropId)));
+    if (!existing || !farmIds.includes(existing.farmId)) return res.status(404).json({ error: "Crop not found" });
     await db.delete(cropsTable).where(eq(cropsTable.id, Number(req.params.cropId)));
     res.status(204).send();
   } catch (err) {

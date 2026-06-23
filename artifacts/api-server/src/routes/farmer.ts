@@ -4,29 +4,33 @@ import { eq } from "drizzle-orm";
 
 const router = Router();
 
-const CURRENT_FARMER_ID = 1;
+function farmerToJson(farmer: typeof farmersTable.$inferSelect) {
+  return {
+    id: farmer.id,
+    name: farmer.name,
+    phone: farmer.phone,
+    email: farmer.email,
+    avatarUrl: farmer.avatarUrl,
+    state: farmer.state,
+    lga: farmer.lga,
+    farmingType: farmer.farmingType,
+    verificationStatus: farmer.verificationStatus,
+    neuroScore: farmer.neuroScore,
+    communityReputation: farmer.communityReputation,
+    credits: farmer.credits,
+    onboardingComplete: farmer.onboardingComplete,
+    joinedAt: farmer.createdAt.toISOString(),
+  };
+}
 
 router.get("/profile", async (req, res) => {
   try {
-    const [farmer] = await db.select().from(farmersTable).where(eq(farmersTable.id, CURRENT_FARMER_ID));
+    const [farmer] = await db.select().from(farmersTable).where(eq(farmersTable.id, req.farmerId!));
     if (!farmer) {
-      return res.status(404).json({ error: "Farmer not found" });
+      res.status(404).json({ error: "Farmer not found" });
+      return;
     }
-    res.json({
-      id: farmer.id,
-      name: farmer.name,
-      phone: farmer.phone,
-      email: farmer.email,
-      avatarUrl: farmer.avatarUrl,
-      state: farmer.state,
-      lga: farmer.lga,
-      farmingType: farmer.farmingType,
-      verificationStatus: farmer.verificationStatus,
-      neuroScore: farmer.neuroScore,
-      communityReputation: farmer.communityReputation,
-      credits: farmer.credits,
-      joinedAt: farmer.createdAt.toISOString(),
-    });
+    res.json(farmerToJson(farmer));
   } catch (err) {
     req.log.error({ err }, "Failed to get farmer profile");
     res.status(500).json({ error: "Internal server error" });
@@ -35,27 +39,22 @@ router.get("/profile", async (req, res) => {
 
 router.patch("/profile", async (req, res) => {
   try {
-    const { name, email, state, lga, farmingType } = req.body;
+    const { name, email, state, lga, farmingType, onboardingComplete } = req.body;
+    const updateData: Record<string, unknown> = {};
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (state !== undefined) updateData.state = state;
+    if (lga !== undefined) updateData.lga = lga;
+    if (farmingType !== undefined) updateData.farmingType = farmingType;
+    if (onboardingComplete !== undefined) updateData.onboardingComplete = onboardingComplete;
+
     const [updated] = await db
       .update(farmersTable)
-      .set({ name, email, state, lga, farmingType })
-      .where(eq(farmersTable.id, CURRENT_FARMER_ID))
+      .set(updateData)
+      .where(eq(farmersTable.id, req.farmerId!))
       .returning();
-    res.json({
-      id: updated.id,
-      name: updated.name,
-      phone: updated.phone,
-      email: updated.email,
-      avatarUrl: updated.avatarUrl,
-      state: updated.state,
-      lga: updated.lga,
-      farmingType: updated.farmingType,
-      verificationStatus: updated.verificationStatus,
-      neuroScore: updated.neuroScore,
-      communityReputation: updated.communityReputation,
-      credits: updated.credits,
-      joinedAt: updated.createdAt.toISOString(),
-    });
+
+    res.json(farmerToJson(updated));
   } catch (err) {
     req.log.error({ err }, "Failed to update farmer profile");
     res.status(500).json({ error: "Internal server error" });

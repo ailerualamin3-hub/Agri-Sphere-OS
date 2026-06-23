@@ -5,15 +5,21 @@ import { useAuth } from "@/contexts/auth";
 
 export default function Splash() {
   const [, setLocation] = useLocation();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, farmer } = useAuth();
 
   useEffect(() => {
     if (isLoading) return;
     const timer = setTimeout(() => {
-      setLocation(isAuthenticated ? "/home" : "/login");
+      if (!isAuthenticated) {
+        setLocation("/login");
+      } else if (!farmer?.onboardingComplete) {
+        setLocation("/onboarding");
+      } else {
+        setLocation("/home");
+      }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [isAuthenticated, isLoading, setLocation]);
+  }, [isAuthenticated, isLoading, farmer, setLocation]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-secondary relative overflow-hidden max-w-[480px] mx-auto">

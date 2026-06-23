@@ -10,8 +10,20 @@ export interface AuthFarmer {
   email: string | null;
   phone: string;
   state: string;
+  lga?: string;
+  farmingType?: string;
   neuroScore: number;
+  communityReputation?: string;
   avatarUrl?: string | null;
+  onboardingComplete: boolean;
+}
+
+interface OnboardingData {
+  state: string;
+  lga: string;
+  farmingType: string;
+  farmName?: string;
+  farmSizeHa?: number;
 }
 
 interface AuthContextValue {
@@ -25,6 +37,8 @@ interface AuthContextValue {
   resetPassword: (email: string, resetCode: string, password: string) => Promise<void>;
   sendPhoneOtp: (phone: string) => Promise<{ otp: string; isNewUser: boolean; note: string }>;
   verifyPhoneOtp: (phone: string, otp: string, name?: string) => Promise<{ isNewUser: boolean }>;
+  saveOnboarding: (data: OnboardingData) => Promise<void>;
+  updateFarmer: (updates: Partial<AuthFarmer>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -98,12 +112,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { isNewUser: data.isNewUser };
   }, []);
 
+  const saveOnboarding = useCallback(async (data: OnboardingData) => {
+    await apiFetch("/farmer/profile", {
+      method: "PATCH",
+      body: JSON.stringify({
+        state: data.state,
+        lga: data.lga,
+        farmingType: data.farmingType,
+        onboardingComplete: true,
+      }),
+    });
+    if (data.farmName) {
+      await apiFetch("/farms", {
+        method: "POST",
+        body: JSON.stringify({
+          name: data.farmName,
+          sizeHectares: data.farmSizeHa ?? 1,
+          state: data.state,
+          lga: data.lga,
+          farmType: data.farmingType,
+        }),
+      });
+    }
+    setFarmer((prev) =>
+      prev
+        ? { ...prev, state: data.state, lga: data.lga, farmingType: data.farmingType, onboardingComplete: true }
+        : null
+    );
+  }, []);
+
+  const updateFarmer = useCallback((updates: Partial<AuthFarmer>) => {
+    setFarmer((prev) => (prev ? { ...prev, ...updates } : null));
+  }, []);
+
   return (
-    <AuthContext.Provider value={{
-      farmer, isAuthenticated: !!farmer, isLoading,
-      login, register, logout, forgotPassword, resetPassword,
-      sendPhoneOtp, verifyPhoneOtp,
-    }}>
+    <AuthContext.Provider
+      value={{
+        farmer, isAuthenticated: !!farmer, isLoading,
+        login, register, logout, forgotPassword, resetPassword,
+        sendPhoneOtp, verifyPhoneOtp, saveOnboarding, updateFarmer,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

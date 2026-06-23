@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, real, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, real, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -12,14 +12,15 @@ export const farmersTable = pgTable("farmers", {
   resetTokenExpiry: timestamp("reset_token_expiry", { withTimezone: true }),
   phoneOtp: text("phone_otp"),
   phoneOtpExpiry: timestamp("phone_otp_expiry", { withTimezone: true }),
+  onboardingComplete: boolean("onboarding_complete").notNull().default(false),
   avatarUrl: text("avatar_url"),
-  state: text("state").notNull().default("Kano"),
-  lga: text("lga").notNull().default("Kano Municipal"),
+  state: text("state").notNull().default(""),
+  lga: text("lga").notNull().default(""),
   farmingType: text("farming_type").notNull().default("mixed"),
   verificationStatus: text("verification_status").notNull().default("verified"),
-  neuroScore: real("neuro_score").notNull().default(72.5),
-  communityReputation: text("community_reputation").notNull().default("Gold"),
-  credits: integer("credits").notNull().default(150),
+  neuroScore: real("neuro_score").notNull().default(0),
+  communityReputation: text("community_reputation").notNull().default("Bronze"),
+  credits: integer("credits").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

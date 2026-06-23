@@ -9,6 +9,7 @@ import Splash from "@/pages/splash";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import ForgotPassword from "@/pages/forgot-password";
+import Onboarding from "@/pages/onboarding";
 import Home from "@/pages/home";
 import FarmGpt from "@/pages/farmgpt";
 import Farm from "@/pages/farm";
@@ -31,14 +32,15 @@ const queryClient = new QueryClient({
 });
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, farmer } = useAuth();
   if (isLoading) return null;
   if (!isAuthenticated) return <Redirect to="/login" />;
+  if (!farmer?.onboardingComplete) return <Redirect to="/onboarding" />;
   return <>{children}</>;
 }
 
 function AppRouter() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, farmer } = useAuth();
 
   if (isLoading) {
     return (
@@ -58,6 +60,14 @@ function AppRouter() {
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/forgot-password" component={ForgotPassword} />
+
+      <Route path="/onboarding">
+        {!isAuthenticated
+          ? <Redirect to="/login" />
+          : farmer?.onboardingComplete
+            ? <Redirect to="/home" />
+            : <Onboarding />}
+      </Route>
 
       <Route path="/home">
         <ProtectedRoute><Layout><Home /></Layout></ProtectedRoute>
