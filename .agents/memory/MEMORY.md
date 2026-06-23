@@ -1,0 +1,1 @@
+- [Auth System](auth-system.md) — JWT + bcryptjs auth; token in localStorage; frontend-gated routes; backend data routes still use farmerId=1 hardcode.

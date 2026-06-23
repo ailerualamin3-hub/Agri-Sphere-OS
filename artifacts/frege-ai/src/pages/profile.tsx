@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { useLocation } from "wouter";
 import {
   ShieldCheck, TrendingUp, CheckCircle2, Award, Landmark,
   CreditCard, ChevronRight, Star, Users, BarChart2,
   FileText, Settings, LogOut, Edit3, Trophy, Zap,
   Sprout, MessageSquare, ShoppingCart, Calendar, Medal
 } from "lucide-react";
+import { useAuth } from "@/contexts/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -120,7 +122,14 @@ const ACHIEVEMENTS = [
 ];
 
 export default function Profile() {
+  const [, setLocation] = useLocation();
+  const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState<ProfileTab>("overview");
+
+  const handleSignOut = () => {
+    logout();
+    setLocation("/login");
+  };
 
   const { data: profile, isLoading: isProfileLoading } = useGetFarmerProfile({ query: { queryKey: getGetFarmerProfileQueryKey() } });
   const { data: scoreData, isLoading: isScoreLoading } = useGetNeuroScore({ query: { queryKey: getGetNeuroScoreQueryKey() } });
@@ -335,7 +344,10 @@ export default function Profile() {
               </Card>
             </section>
 
-            <button className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-red-500 bg-red-50 font-bold text-sm">
+            <button
+              onClick={handleSignOut}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-red-500 bg-red-50 font-bold text-sm active:scale-95 transition-transform"
+            >
               <LogOut className="w-4 h-4" /> Sign Out
             </button>
           </>
