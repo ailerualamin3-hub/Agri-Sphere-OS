@@ -5,6 +5,12 @@ import jwt from "jsonwebtoken";
 import { db, farmersTable } from "@workspace/db";
 import { eq, or } from "drizzle-orm";
 import { signToken } from "../middleware/auth.js";
+import {
+  sendOtpSms,
+  sendOtpEmail,
+  sendPasswordResetEmail,
+  sendPasswordResetSms,
+} from "../lib/notifications.js";
 
 const JWT_SECRET = process.env["JWT_SECRET"] || "frege-ai-dev-secret-change-in-prod";
 
@@ -198,10 +204,26 @@ router.post("/forgot-password", async (req, res) => {
       .set({ resetToken, resetTokenExpiry })
       .where(eq(farmersTable.id, farmer.id));
 
+    const [farmerFull] = await db
+      .select({ email: farmersTable.email, phone: farmersTable.phone })
+      .from(farmersTable)
+      .where(eq(farmersTable.id, farmer.id))
+      .limit(1);
+
+    const emailSent = farmerFull?.email
+      ? await sendPasswordResetEmail(farmerFull.email, farmer.name, resetToken)
+      : false;
+    const smsSent = farmerFull?.phone
+      ? await sendPasswordResetSms(farmerFull.phone, resetToken)
+      : false;
+
     res.json({
-      message: "Password reset code generated.",
-      resetCode: resetToken,
-      note: "In production this would be sent by SMS/email. Use this code to reset your password.",
+      message: emailSent || smsSent
+        ? "Password reset code sent. Check your email or phone."
+        : "Password reset code generated.",
+      ...(emailSent || smsSent
+        ? {}
+        : { resetCode: resetToken, note: "Notifications not configured – use this code to reset your password." }),
     });
   } catch (err) {
     req.log.error({ err }, "Forgot password failed");
@@ -300,11 +322,15 @@ router.post("/phone/send-otp", async (req, res) => {
         });
     }
 
+    const smsSent = await sendOtpSms(normalized, otp);
+
     res.json({
-      otp,
       isNewUser: !existing,
-      note: "In production this code would be sent by SMS. Use this code to sign in.",
-      message: `OTP sent to ${normalized}`,
+      smsSent,
+      message: smsSent
+        ? `Verification code sent to ${normalized}`
+        : `OTP sent to ${normalized}`,
+      ...(smsSent ? {} : { otp, note: "SMS not configured – use this code to sign in." }),
     });
   } catch (err) {
     req.log.error({ err }, "Send phone OTP failed");
