@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import twilio from "twilio";
 
-const FROM_EMAIL = "FREGE AI <noreply@fregeai.com>";
+const FROM_EMAIL = process.env["RESEND_FROM_EMAIL"] || "FREGE AI <onboarding@resend.dev>";
 const FROM_PHONE = process.env["TWILIO_PHONE_NUMBER"] || "";
 const APP_NAME = "FREGE AI";
 
