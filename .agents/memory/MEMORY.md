@@ -1,4 +1,6 @@
 - [Auth & onboarding architecture](auth-onboarding.md) — JWT auth, onboardingComplete gate, all data routes require Bearer token via index.ts middleware
 - [Route auth pattern](route-auth-pattern.md) — requireAuth at router level in index.ts; crops/livestock filter via farmer's farm IDs using inArray(cropsTable.farmId, farmIds)
-- [Farm Check & AI scan system](farm-check-scan.md) — Gemini vision at /api/scan/analyze, 5-scan credit limit, history at /api/scan/history; "diagnose" page renamed "Farm Check"
+- [Farm Check & AI scan system](farm-check-scan.md) — Gemini vision at /api/scan/analyze, use gemini-1.5-flash (NOT 2.5-flash), robust JSON extraction needed
 - [FarmGPT streaming](farmgpt-streaming.md) — SSE streaming at /api/farmgpt/conversations/:id/messages/stream; farm scan history injected into Gemini system prompt for personalized advice
+- [Weather real data](weather-real-data.md) — Open-Meteo API (free, no key) used in climate.ts; maps farmer's state to lat/lng; WMO weather codes mapped to conditions
+- [Market farm-insights endpoint](market-farm-insights.md) — /api/market/farm-insights returns location + crop/livestock-specific price advice from farmer's actual farm data

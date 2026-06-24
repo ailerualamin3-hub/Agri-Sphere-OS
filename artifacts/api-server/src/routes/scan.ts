@@ -10,59 +10,37 @@ const FREE_SCAN_LIMIT = 5;
 
 const SCAN_PROMPTS: Record<string, string> = {
   crop: `You are an expert Nigerian agricultural pathologist. Analyze this crop/plant image from a Nigerian farm.
-Respond with ONLY a valid JSON object (no markdown, no code blocks) with exactly these fields:
-{
-  "diagnosis": "specific disease or condition name",
-  "confidence": 85,
-  "severity": "Good",
-  "description": "2-3 sentence description of what you see and what it means for the farmer",
-  "recommendations": ["Specific action 1 with Nigerian context", "Action 2", "Action 3", "Action 4"],
-  "additionalInfo": [
-    {"label": "Affected Area", "value": "..."},
-    {"label": "Disease Stage", "value": "..."},
-    {"label": "Spread Risk", "value": "..."},
-    {"label": "Recovery Chance", "value": "..."}
-  ]
-}
-Severity must be one of: Good, Moderate, High, Critical.
-Use Nigerian crop varieties, mention costs in Naira (₦) where relevant. Return ONLY the JSON.`,
+Return ONLY a valid JSON object with no markdown, no code blocks, no extra text — just raw JSON starting with { and ending with }:
+{"diagnosis":"specific disease or condition name","confidence":85,"severity":"Good","description":"2-3 sentences about what you see and what it means for the farmer","recommendations":["Action 1 with Nigerian context","Action 2","Action 3","Action 4"],"additionalInfo":[{"label":"Affected Area","value":"..."},{"label":"Disease Stage","value":"..."},{"label":"Spread Risk","value":"..."},{"label":"Recovery Chance","value":"..."}]}
+severity must be one of: Good, Moderate, High, Critical. Use Nigerian crop varieties. Mention costs in Naira where relevant.`,
 
   animal: `You are an expert Nigerian veterinarian. Analyze this livestock image from a Nigerian farm.
-Respond with ONLY a valid JSON object (no markdown, no code blocks) with exactly these fields:
-{
-  "diagnosis": "condition or disease name",
-  "confidence": 80,
-  "severity": "Moderate",
-  "description": "2-3 sentence description of what you observe and recommended urgency",
-  "recommendations": ["Specific action 1", "Action 2", "Action 3", "Action 4"],
-  "additionalInfo": [
-    {"label": "Symptoms Detected", "value": "..."},
-    {"label": "Contagion Risk", "value": "..."},
-    {"label": "Treatment Window", "value": "..."},
-    {"label": "Mortality Risk", "value": "..."}
-  ]
-}
-Severity must be one of: Good, Moderate, High, Critical.
-Include Nigerian veterinary resources and costs in Naira where relevant. Return ONLY the JSON.`,
+Return ONLY a valid JSON object with no markdown, no code blocks, no extra text — just raw JSON starting with { and ending with }:
+{"diagnosis":"condition or disease name","confidence":80,"severity":"Moderate","description":"2-3 sentences about what you observe and urgency","recommendations":["Action 1","Action 2","Action 3","Action 4"],"additionalInfo":[{"label":"Symptoms Detected","value":"..."},{"label":"Contagion Risk","value":"..."},{"label":"Treatment Window","value":"..."},{"label":"Mortality Risk","value":"..."}]}
+severity must be one of: Good, Moderate, High, Critical. Include Nigerian veterinary resources and Naira costs.`,
 
   soil: `You are an expert Nigerian soil scientist. Analyze this soil image from a Nigerian farm.
-Respond with ONLY a valid JSON object (no markdown, no code blocks) with exactly these fields:
-{
-  "diagnosis": "soil type and fertility condition",
-  "confidence": 88,
-  "severity": "Good",
-  "description": "2-3 sentence description of soil health and what it means for crop production",
-  "recommendations": ["Specific action 1 with Nigerian context", "Action 2", "Action 3", "Action 4"],
-  "additionalInfo": [
-    {"label": "Soil Type", "value": "..."},
-    {"label": "Estimated pH", "value": "..."},
-    {"label": "Drainage", "value": "..."},
-    {"label": "Best Crops", "value": "..."}
-  ]
-}
-Severity must be one of: Good, Moderate, High, Critical.
-Reference Nigerian soil zones (Sudan Savanna, Guinea Savanna, rainforest belt). Return ONLY the JSON.`,
+Return ONLY a valid JSON object with no markdown, no code blocks, no extra text — just raw JSON starting with { and ending with }:
+{"diagnosis":"soil type and fertility condition","confidence":88,"severity":"Good","description":"2-3 sentences about soil health and what it means for crop production","recommendations":["Action 1 with Nigerian context","Action 2","Action 3","Action 4"],"additionalInfo":[{"label":"Soil Type","value":"..."},{"label":"Estimated pH","value":"..."},{"label":"Drainage","value":"..."},{"label":"Best Crops","value":"..."}]}
+severity must be one of: Good, Moderate, High, Critical. Reference Nigerian soil zones (Sudan Savanna, Guinea Savanna, rainforest belt).`,
 };
+
+function extractJson(text: string): any {
+  const cleaned = text
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/gi, "")
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) {
+      return JSON.parse(match[0]);
+    }
+    throw new Error("No valid JSON found in response");
+  }
+}
 
 router.get("/credits", async (req, res) => {
   try {
@@ -120,37 +98,35 @@ router.post("/analyze", async (req, res) => {
     }
 
     const base64Data = imageBase64.replace(/^data:[^;]+;base64,/, "");
-    const imageMimeType = mimeType || "image/jpeg";
-    const prompt = SCAN_PROMPTS[scanType] || SCAN_PROMPTS.crop;
+    const imageMimeType = (mimeType || "image/jpeg") as string;
+    const prompt = SCAN_PROMPTS[scanType as string] || SCAN_PROMPTS.crop;
 
     let analysisResult: any;
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const result = await model.generateContent([
         { inlineData: { data: base64Data, mimeType: imageMimeType } },
         { text: prompt },
       ]);
       const rawText = result.response.text().trim();
-      const cleaned = rawText
-        .replace(/^```json\s*/m, "")
-        .replace(/^```\s*/m, "")
-        .replace(/\s*```$/m, "")
-        .trim();
-      analysisResult = JSON.parse(cleaned);
-    } catch (geminiErr) {
-      req.log.error({ geminiErr }, "Gemini vision error");
-      return res.status(500).json({ error: "Analysis failed. Please retake the photo in better lighting and try again." });
+      req.log.info({ rawText: rawText.slice(0, 200) }, "Gemini raw response");
+      analysisResult = extractJson(rawText);
+    } catch (geminiErr: any) {
+      req.log.error({ geminiErr: geminiErr?.message || String(geminiErr) }, "Gemini vision error");
+      return res.status(500).json({
+        error: "Analysis failed. Please take a clearer photo in good natural light and try again.",
+      });
     }
 
     const [saved] = await db
       .insert(scanResultsTable)
       .values({
         farmerId,
-        scanType,
-        diagnosis: analysisResult.diagnosis || "Unknown",
-        confidence: analysisResult.confidence || 0,
-        severity: analysisResult.severity || "Moderate",
-        description: analysisResult.description || "",
+        scanType: scanType as string,
+        diagnosis: String(analysisResult.diagnosis || "Unknown"),
+        confidence: Number(analysisResult.confidence) || 0,
+        severity: String(analysisResult.severity || "Moderate"),
+        description: String(analysisResult.description || ""),
         recommendations: Array.isArray(analysisResult.recommendations) ? analysisResult.recommendations : [],
         rawResult: JSON.stringify(analysisResult),
       })

@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, marketPricesTable, marketListingsTable, farmersTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { db, marketPricesTable, marketListingsTable, farmersTable, farmsTable, cropsTable, livestockTable, scanResultsTable } from "@workspace/db";
+import { eq, desc, inArray } from "drizzle-orm";
 
 const router = Router();
 
@@ -66,6 +66,112 @@ async function seedPricesIfEmpty() {
     await db.insert(marketPricesTable).values(SEED_PRICES);
   }
 }
+
+router.get("/farm-insights", async (req, res) => {
+  try {
+    await seedPricesIfEmpty();
+    const farmerId = req.farmerId!;
+
+    const [farmer] = await db
+      .select({ state: farmersTable.state })
+      .from(farmersTable)
+      .where(eq(farmersTable.id, farmerId))
+      .limit(1);
+
+    const farms = await db
+      .select({ id: farmsTable.id })
+      .from(farmsTable)
+      .where(eq(farmsTable.farmerId, farmerId));
+
+    const farmIds = farms.map((f) => f.id);
+
+    const crops = farmIds.length > 0
+      ? await db.select({ name: cropsTable.name, stage: cropsTable.stage, healthScore: cropsTable.healthScore })
+          .from(cropsTable).where(inArray(cropsTable.farmId, farmIds))
+      : [];
+
+    const animals = farmIds.length > 0
+      ? await db.select({ species: livestockTable.species, count: livestockTable.count, healthScore: livestockTable.healthScore })
+          .from(livestockTable).where(inArray(livestockTable.farmId, farmIds))
+      : [];
+
+    const [latestScan] = farmIds.length > 0
+      ? await db.select({ scanType: scanResultsTable.scanType, diagnosis: scanResultsTable.diagnosis, severity: scanResultsTable.severity })
+          .from(scanResultsTable).where(eq(scanResultsTable.farmerId, farmerId))
+          .orderBy(desc(scanResultsTable.createdAt)).limit(1)
+      : [null];
+
+    const allPrices = await db.select().from(marketPricesTable);
+
+    const matchedItems: any[] = [];
+
+    for (const crop of crops) {
+      const match = allPrices.find((p) =>
+        p.commodity.toLowerCase().includes(crop.name.toLowerCase()) ||
+        crop.name.toLowerCase().includes(p.commodity.toLowerCase().split(" ")[0])
+      );
+      if (match) {
+        const change = match.changePercent ?? 0;
+        let advice = "Stable prices — hold or sell as needed";
+        if (match.trend === "rising" && change > 3) advice = "Prices are rising — good time to sell now";
+        else if (match.trend === "falling" && change < -5) advice = "Prices are falling — sell quickly to avoid losses";
+        else if (crop.stage === "harvest") advice = "Your crop is ready to harvest — sell now at current prices";
+        matchedItems.push({
+          name: crop.name,
+          stage: crop.stage,
+          healthScore: crop.healthScore,
+          pricePerKg: match.pricePerKg,
+          unit: match.unit,
+          market: match.market,
+          trend: match.trend,
+          changePercent: change,
+          advice,
+          type: "crop",
+        });
+      }
+    }
+
+    for (const animal of animals) {
+      const match = allPrices.find((p) =>
+        p.commodity.toLowerCase().includes(animal.species.toLowerCase()) ||
+        animal.species.toLowerCase().includes(p.commodity.toLowerCase().split(" ")[0])
+      );
+      if (match) {
+        const change = match.changePercent ?? 0;
+        let advice = "Stable prices for livestock";
+        if (match.trend === "rising" && change > 3) advice = "Livestock prices rising — good time to sell";
+        else if (match.trend === "falling") advice = "Prices dipping — consider holding until market recovers";
+        matchedItems.push({
+          name: animal.species,
+          count: animal.count,
+          healthScore: animal.healthScore,
+          pricePerKg: match.pricePerKg,
+          unit: match.unit,
+          market: match.market,
+          trend: match.trend,
+          changePercent: change,
+          advice,
+          type: "livestock",
+        });
+      }
+    }
+
+    let scanAlert: string | null = null;
+    if (latestScan && (latestScan.severity === "High" || latestScan.severity === "Critical")) {
+      scanAlert = `Your last ${latestScan.scanType} scan detected "${latestScan.diagnosis}" (${latestScan.severity}). Consider selling affected produce quickly before quality drops.`;
+    }
+
+    res.json({
+      farmerState: farmer?.state ?? "Nigeria",
+      items: matchedItems,
+      scanAlert,
+      hasFarmData: crops.length > 0 || animals.length > 0,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get farm insights");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 router.get("/prices", async (req, res) => {
   try {

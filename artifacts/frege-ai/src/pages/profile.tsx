@@ -21,10 +21,6 @@ import {
   getGetNeuroScoreBreakdownQueryKey,
   getGetReadinessScoresQueryKey,
 } from "@workspace/api-client-react";
-import {
-  ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
-} from "recharts";
-
 type ProfileTab = "overview" | "achievements" | "readiness";
 
 const ACHIEVEMENTS = [
@@ -174,14 +170,14 @@ export default function Profile() {
   const { data: breakdown } = useGetNeuroScoreBreakdown({ query: { queryKey: getGetNeuroScoreBreakdownQueryKey() } });
   const { data: readiness } = useGetReadinessScores({ query: { queryKey: getGetReadinessScoresQueryKey() } });
 
-  const radarData = breakdown
+  const scoreItems = breakdown
     ? [
-        { subject: "Crops", A: breakdown.cropPerformance, fullMark: 100 },
-        { subject: "Animals", A: breakdown.livestockPerformance, fullMark: 100 },
-        { subject: "Community", A: breakdown.communityReputation, fullMark: 100 },
-        { subject: "Activity", A: breakdown.farmActivity, fullMark: 100 },
-        { subject: "Market", A: breakdown.marketplaceActivity, fullMark: 100 },
-        { subject: "Records", A: breakdown.farmRecords, fullMark: 100 },
+        { label: "🌾 Crops", sublabel: "How well your crops are doing", value: breakdown.cropPerformance, color: "#16A34A" },
+        { label: "🐄 Animals", sublabel: "Health of your livestock", value: breakdown.livestockPerformance, color: "#f59e0b" },
+        { label: "👥 Community", sublabel: "Your reputation on FregeOS", value: breakdown.communityReputation, color: "#8b5cf6" },
+        { label: "⚡ Activity", sublabel: "How active you are on the app", value: breakdown.farmActivity, color: "#3b82f6" },
+        { label: "🛒 Market", sublabel: "Buying & selling activity", value: breakdown.marketplaceActivity, color: "#ec4899" },
+        { label: "📋 Records", sublabel: "Quality of your farm records", value: breakdown.farmRecords, color: "#0ea5e9" },
       ]
     : [];
 
@@ -340,30 +336,31 @@ export default function Profile() {
             )}
 
             {/* Score Breakdown */}
-            {radarData.length > 0 && (
+            {scoreItems.length > 0 && (
               <section>
                 <h2 className="text-base font-bold text-gray-900 mb-1">Your Score Breakdown</h2>
-                <p className="text-xs text-gray-400 mb-3">See how well you are doing in each area of farming</p>
+                <p className="text-xs text-gray-400 mb-3">See how you are doing in each area of farming</p>
                 <Card className="rounded-2xl border-0 bg-white shadow-sm">
-                  <CardContent className="p-4 h-[220px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
-                        <PolarGrid stroke="#f1f5f9" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: "#64748b", fontSize: 10, fontWeight: 600 }} />
-                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                        <Radar name="Score" dataKey="A" stroke="#1E3A8A" fill="#1E3A8A" fillOpacity={0.15} strokeWidth={2} />
-                      </RadarChart>
-                    </ResponsiveContainer>
+                  <CardContent className="p-4 space-y-4">
+                    {scoreItems.map((item) => (
+                      <div key={item.label}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">{item.label}</p>
+                            <p className="text-[10px] text-gray-400">{item.sublabel}</p>
+                          </div>
+                          <span className="text-base font-black" style={{ color: item.color }}>{item.value}</span>
+                        </div>
+                        <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{ width: `${item.value}%`, backgroundColor: item.color }}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </CardContent>
                 </Card>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {radarData.map((d) => (
-                    <div key={d.subject} className="bg-white rounded-xl p-2.5 shadow-sm text-center">
-                      <p className="text-sm font-black text-[#1E3A8A]">{d.A}</p>
-                      <p className="text-[10px] text-gray-400 font-semibold">{d.subject}</p>
-                    </div>
-                  ))}
-                </div>
               </section>
             )}
 
