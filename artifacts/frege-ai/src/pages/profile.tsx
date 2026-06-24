@@ -2,13 +2,12 @@ import React, { useState } from "react";
 import { useLocation } from "wouter";
 import {
   ShieldCheck, TrendingUp, CheckCircle2, Award, Landmark,
-  CreditCard, ChevronRight, Star, Users, BarChart2,
-  FileText, Settings, LogOut, Edit3, Trophy, Zap,
-  Sprout, MessageSquare, ShoppingCart, Calendar, Medal
+  CreditCard, ChevronRight, BarChart2,
+  FileText, Settings, LogOut, Sprout, MessageSquare, ShoppingCart,
+  Calendar, Star, Users, Ribbon, BadgeCheck, Wheat, HeartPulse
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,43 +31,43 @@ const ACHIEVEMENTS = [
   {
     id: 1,
     title: "First Harvest",
-    description: "Completed your first crop harvest",
-    icon: Sprout,
+    description: "You recorded your first crop harvest",
+    icon: Wheat,
     color: "bg-green-50 text-[#16A34A]",
     earned: true,
-    earnedAt: "Jan 2025",
+    earnedAt: "Jan 2026",
   },
   {
     id: 2,
-    title: "AI Adopter",
-    description: "Used FarmGPT AI assistant 5+ times",
-    icon: Zap,
+    title: "AI User",
+    description: "You used FarmGPT AI helper 5+ times",
+    icon: Sprout,
     color: "bg-blue-50 text-[#1E3A8A]",
     earned: true,
-    earnedAt: "Mar 2025",
+    earnedAt: "Mar 2026",
   },
   {
     id: 3,
-    title: "Community Pillar",
-    description: "Received 10+ likes on community posts",
+    title: "Community Star",
+    description: "Farmers liked your posts 10+ times",
     icon: Users,
     color: "bg-purple-50 text-purple-600",
     earned: true,
-    earnedAt: "Apr 2025",
+    earnedAt: "Apr 2026",
   },
   {
     id: 4,
-    title: "Market Trader",
-    description: "Listed 3+ products on the marketplace",
+    title: "Market Seller",
+    description: "You listed 3+ products in the market",
     icon: ShoppingCart,
     color: "bg-amber-50 text-amber-600",
     earned: true,
-    earnedAt: "May 2025",
+    earnedAt: "May 2026",
   },
   {
     id: 5,
     title: "Season Planner",
-    description: "Generated your first season planting plan",
+    description: "You created your first planting plan",
     icon: Calendar,
     color: "bg-teal-50 text-teal-600",
     earned: false,
@@ -76,27 +75,27 @@ const ACHIEVEMENTS = [
   },
   {
     id: 6,
-    title: "Disease Detector",
-    description: "Completed 5 crop or animal diagnoses",
-    icon: ShieldCheck,
+    title: "Farm Doctor",
+    description: "You completed 5 crop or animal checks",
+    icon: HeartPulse,
     color: "bg-red-50 text-red-500",
     earned: false,
     earnedAt: null,
   },
   {
     id: 7,
-    title: "Gold Farmer",
-    description: "Reached Gold membership level",
-    icon: Star,
-    color: "bg-yellow-50 text-yellow-500",
+    title: "Verified Farmer",
+    description: "Your account is fully verified",
+    icon: BadgeCheck,
+    color: "bg-yellow-50 text-yellow-600",
     earned: true,
-    earnedAt: "Feb 2025",
+    earnedAt: "Feb 2026",
   },
   {
     id: 8,
-    title: "Livestock Guardian",
-    description: "Kept all livestock health scores above 80",
-    icon: Medal,
+    title: "Animal Guardian",
+    description: "All your animals stayed healthy above 80%",
+    icon: Ribbon,
     color: "bg-orange-50 text-orange-500",
     earned: false,
     earnedAt: null,
@@ -104,7 +103,7 @@ const ACHIEVEMENTS = [
   {
     id: 9,
     title: "Record Keeper",
-    description: "Added farm records for 3 consecutive months",
+    description: "You kept farm records for 3 months in a row",
     icon: FileText,
     color: "bg-indigo-50 text-indigo-600",
     earned: false,
@@ -113,13 +112,52 @@ const ACHIEVEMENTS = [
   {
     id: 10,
     title: "Community Voice",
-    description: "Posted in community 10+ times",
+    description: "You posted in the community 10+ times",
     icon: MessageSquare,
     color: "bg-pink-50 text-pink-500",
     earned: false,
     earnedAt: null,
   },
 ];
+
+function InitialsAvatar({ name, size = "lg" }: { name: string; size?: "sm" | "lg" }) {
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  const colors = [
+    "from-green-500 to-green-600",
+    "from-blue-600 to-blue-700",
+    "from-purple-500 to-purple-600",
+    "from-amber-500 to-amber-600",
+    "from-teal-500 to-teal-600",
+    "from-rose-500 to-rose-600",
+  ];
+  const colorIndex =
+    name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % colors.length;
+  const gradient = colors[colorIndex];
+
+  const sizeClass = size === "lg" ? "w-20 h-20 text-2xl" : "w-10 h-10 text-sm";
+
+  return (
+    <div
+      className={`${sizeClass} rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center font-black text-white shadow-xl border-2 border-white/30 shrink-0`}
+    >
+      {initials}
+    </div>
+  );
+}
+
+function levelColor(level: string) {
+  const l = (level ?? "").toLowerCase();
+  if (l.includes("gold")) return { bg: "bg-amber-100", text: "text-amber-700", dot: "bg-amber-500" };
+  if (l.includes("silver")) return { bg: "bg-gray-100", text: "text-gray-700", dot: "bg-gray-400" };
+  if (l.includes("bronze")) return { bg: "bg-orange-100", text: "text-orange-700", dot: "bg-orange-400" };
+  return { bg: "bg-blue-100", text: "text-blue-700", dot: "bg-blue-400" };
+}
 
 export default function Profile() {
   const [, setLocation] = useLocation();
@@ -139,7 +177,7 @@ export default function Profile() {
   const radarData = breakdown
     ? [
         { subject: "Crops", A: breakdown.cropPerformance, fullMark: 100 },
-        { subject: "Livestock", A: breakdown.livestockPerformance, fullMark: 100 },
+        { subject: "Animals", A: breakdown.livestockPerformance, fullMark: 100 },
         { subject: "Community", A: breakdown.communityReputation, fullMark: 100 },
         { subject: "Activity", A: breakdown.farmActivity, fullMark: 100 },
         { subject: "Market", A: breakdown.marketplaceActivity, fullMark: 100 },
@@ -148,88 +186,99 @@ export default function Profile() {
     : [];
 
   const earnedCount = ACHIEVEMENTS.filter((a) => a.earned).length;
+  const memberLevel = scoreData?.level ?? "";
+  const lc = levelColor(memberLevel);
+  const farmerName = profile?.name ?? "";
 
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Profile Header */}
       <div className="bg-gradient-to-br from-[#1E3A8A] to-blue-700 px-4 pt-12 pb-0 relative overflow-hidden">
-        <div className="absolute top-0 right-0 opacity-10">
-          <ShieldCheck className="w-40 h-40" />
+        <div className="absolute top-0 right-0 opacity-5">
+          <ShieldCheck className="w-48 h-48" />
         </div>
+
         <div className="flex items-start gap-4 mb-5 relative z-10">
           {isProfileLoading ? (
-            <Skeleton className="w-20 h-20 rounded-2xl" />
-          ) : (
+            <Skeleton className="w-20 h-20 rounded-2xl bg-white/20" />
+          ) : farmerName ? (
             <div className="relative">
-              <Avatar className="w-20 h-20 rounded-2xl border-2 border-white/30 shadow-xl">
-                <AvatarImage src="https://i.pravatar.cc/150?u=aminu" />
-                <AvatarFallback className="bg-white/20 text-white text-xl font-black rounded-2xl">
-                  {profile?.name?.charAt(0) ?? "A"}
-                </AvatarFallback>
-              </Avatar>
+              <InitialsAvatar name={farmerName} size="lg" />
               {profile?.verificationStatus === "verified" && (
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#16A34A] rounded-full flex items-center justify-center border-2 border-white">
-                  <CheckCircle2 className="w-3 h-3 text-white" />
+                <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-[#16A34A] rounded-full flex items-center justify-center border-2 border-white shadow-md">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-white" />
                 </div>
               )}
             </div>
+          ) : (
+            <Skeleton className="w-20 h-20 rounded-2xl bg-white/20" />
           )}
-          <div className="flex-1">
+
+          <div className="flex-1 min-w-0">
             {isProfileLoading ? (
-              <div className="space-y-1.5">
-                <Skeleton className="h-5 w-32 bg-white/20 rounded" />
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-36 bg-white/20 rounded" />
                 <Skeleton className="h-3 w-24 bg-white/20 rounded" />
               </div>
             ) : (
               <>
-                <h1 className="text-xl font-black text-white mb-0.5">{profile?.name ?? "Aminu Kano"}</h1>
+                <h1 className="text-xl font-black text-white mb-0.5 truncate">{profile?.name}</h1>
                 <p className="text-blue-200 text-xs font-medium">ID: FRG-{(profile?.id ?? 1).toString().padStart(6, "0")}</p>
-                <p className="text-blue-200 text-xs">{profile?.state ?? "Kano"}, Nigeria</p>
-                <div className="flex items-center gap-1.5 mt-2">
-                  <Badge className="bg-[#FBBF24]/20 text-yellow-300 border-0 text-[10px] font-bold px-2 py-0.5">
-                    <Star className="w-3 h-3 mr-0.5" /> Gold Member
-                  </Badge>
-                  <Badge className="bg-white/10 text-blue-100 border-0 text-[10px] font-bold px-2 py-0.5 capitalize">
-                    {profile?.farmingType ?? "Mixed"} Farmer
-                  </Badge>
+                <p className="text-blue-200 text-xs">{profile?.state}, Nigeria</p>
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                  {memberLevel && (
+                    <span className={`inline-flex items-center gap-1 ${lc.bg} ${lc.text} text-[10px] font-bold px-2 py-0.5 rounded-full`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${lc.dot}`} />
+                      {memberLevel} Farmer
+                    </span>
+                  )}
+                  {profile?.verificationStatus === "verified" && (
+                    <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      <CheckCircle2 className="w-3 h-3" /> Verified
+                    </span>
+                  )}
+                  <span className="inline-flex items-center gap-1 bg-white/10 text-blue-100 text-[10px] font-bold px-2 py-0.5 rounded-full capitalize">
+                    {profile?.farmingType} Farmer
+                  </span>
                 </div>
               </>
             )}
           </div>
-          <button className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-            <Edit3 className="w-4 h-4 text-white" />
-          </button>
         </div>
 
-        {/* NeuroScore Gauge */}
+        {/* Farm Trust Score */}
         {isScoreLoading ? (
           <Skeleton className="h-24 w-full rounded-2xl bg-white/10" />
         ) : scoreData ? (
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 relative z-10">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-200 text-xs font-semibold mb-1">NeuroScore™</p>
-                <div className="flex items-end gap-2">
+                <p className="text-blue-200 text-xs font-semibold mb-0.5">Farm Trust Score</p>
+                <div className="flex items-end gap-1.5">
                   <span className="text-4xl font-black text-white leading-none">{scoreData.score}</span>
                   <span className="text-blue-200 text-xs font-semibold pb-1">/ 100</span>
                 </div>
-                <Badge className="bg-[#FBBF24]/20 text-yellow-300 border-0 text-[10px] font-bold mt-1.5">
-                  <Award className="w-3 h-3 mr-0.5" /> {scoreData.level} Level
-                </Badge>
+                <p className="text-blue-300 text-[10px] mt-0.5">Higher score = better loan & insurance access</p>
+                <div className="flex items-center gap-1 mt-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-green-400" />
+                  <span className="text-green-400 text-xs font-bold">+{scoreData.change30Days} pts this month</span>
+                </div>
               </div>
-              <div className="relative w-24 h-24">
-                <svg viewBox="0 0 80 80" className="w-24 h-24 -rotate-90">
+              <div className="relative w-20 h-20">
+                <svg viewBox="0 0 80 80" className="w-20 h-20 -rotate-90">
                   <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="7" />
-                  <circle cx="40" cy="40" r="30" fill="none" stroke="#FBBF24" strokeWidth="7"
-                    strokeDasharray={188} strokeDashoffset={188 - (188 * scoreData.score) / 100}
-                    strokeLinecap="round" style={{ transition: "stroke-dashoffset 1.5s ease" }}
+                  <circle
+                    cx="40" cy="40" r="30" fill="none"
+                    stroke={scoreData.score >= 60 ? "#4ade80" : scoreData.score >= 30 ? "#FBBF24" : "#f87171"}
+                    strokeWidth="7"
+                    strokeDasharray={188}
+                    strokeDashoffset={188 - (188 * scoreData.score) / 100}
+                    strokeLinecap="round"
+                    style={{ transition: "stroke-dashoffset 1.5s ease" }}
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="flex items-center gap-0.5 text-white">
-                    <TrendingUp className="w-3.5 h-3.5 text-[#FBBF24]" />
-                    <span className="text-xs font-bold text-[#FBBF24]">+{scoreData.change30Days}</span>
-                  </div>
+                  <ShieldCheck className="w-6 h-6 text-white/60" />
                 </div>
               </div>
             </div>
@@ -239,16 +288,16 @@ export default function Profile() {
         {/* Tabs */}
         <div className="flex mt-4 -mx-4">
           {([
-            { id: "overview", label: "Overview" },
-            { id: "achievements", label: "Achievements" },
-            { id: "readiness", label: "Readiness" },
+            { id: "overview", label: "My Profile" },
+            { id: "achievements", label: "Badges" },
+            { id: "readiness", label: "Loan Access" },
           ] as { id: ProfileTab; label: string }[]).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 py-3 text-xs font-bold border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? "border-[#FBBF24] text-white"
+                  ? "border-[#4ade80] text-white"
                   : "border-transparent text-blue-300"
               }`}
             >
@@ -263,21 +312,21 @@ export default function Profile() {
         {/* OVERVIEW TAB */}
         {activeTab === "overview" && (
           <>
-            {/* Farm Passport */}
+            {/* Farm Card */}
             {profile && (
               <section>
-                <h2 className="text-sm font-bold text-gray-900 mb-3">Farm Passport</h2>
+                <h2 className="text-base font-bold text-gray-900 mb-3">Your Farm Card</h2>
                 <Card className="rounded-2xl border-0 bg-white shadow-sm overflow-hidden">
                   <div className="h-1.5 w-full bg-gradient-to-r from-[#16A34A] via-[#FBBF24] to-[#1E3A8A]" />
                   <CardContent className="p-4">
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        { label: "Farming Type", value: profile.farmingType ?? "Mixed", capitalize: true },
-                        { label: "State", value: profile.state ?? "Kano" },
-                        { label: "Reputation", value: "Gold Member" },
-                        { label: "Status", value: profile.verificationStatus ?? "Verified", capitalize: true },
-                        { label: "Member Since", value: new Date(profile.joinedAt ?? Date.now()).getFullYear().toString() },
-                        { label: "LGA", value: profile.lga ?? "Kano Municipal" },
+                        { label: "Type of Farming", value: profile.farmingType ?? "Mixed", capitalize: true },
+                        { label: "State", value: profile.state ?? "—" },
+                        { label: "Member Level", value: memberLevel || "Beginner" },
+                        { label: "Status", value: profile.verificationStatus ?? "Pending", capitalize: true },
+                        { label: "Joined", value: new Date(profile.joinedAt ?? Date.now()).getFullYear().toString() },
+                        { label: "LGA", value: profile.lga ?? "—" },
                       ].map((item, i) => (
                         <div key={i} className="bg-gray-50 rounded-xl p-3">
                           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-0.5">{item.label}</p>
@@ -293,9 +342,10 @@ export default function Profile() {
             {/* Score Breakdown */}
             {radarData.length > 0 && (
               <section>
-                <h2 className="text-sm font-bold text-gray-900 mb-3">Score Breakdown</h2>
+                <h2 className="text-base font-bold text-gray-900 mb-1">Your Score Breakdown</h2>
+                <p className="text-xs text-gray-400 mb-3">See how well you are doing in each area of farming</p>
                 <Card className="rounded-2xl border-0 bg-white shadow-sm">
-                  <CardContent className="p-4 h-[240px]">
+                  <CardContent className="p-4 h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
                         <PolarGrid stroke="#f1f5f9" />
@@ -309,7 +359,7 @@ export default function Profile() {
                 <div className="grid grid-cols-3 gap-2 mt-2">
                   {radarData.map((d) => (
                     <div key={d.subject} className="bg-white rounded-xl p-2.5 shadow-sm text-center">
-                      <p className="text-xs font-black text-[#1E3A8A]">{d.A}</p>
+                      <p className="text-sm font-black text-[#1E3A8A]">{d.A}</p>
                       <p className="text-[10px] text-gray-400 font-semibold">{d.subject}</p>
                     </div>
                   ))}
@@ -319,23 +369,26 @@ export default function Profile() {
 
             {/* Account Menu */}
             <section>
-              <h2 className="text-sm font-bold text-gray-900 mb-3">Account</h2>
+              <h2 className="text-base font-bold text-gray-900 mb-3">Account</h2>
               <Card className="rounded-2xl border-0 bg-white shadow-sm overflow-hidden">
                 {[
-                  { icon: BarChart2, label: "Activity History", sublabel: "View your farm activity log" },
-                  { icon: FileText, label: "Farm Records", sublabel: "Documents & certificates" },
-                  { icon: Users, label: "Referrals", sublabel: "Invite farmers, earn credits" },
-                  { icon: Settings, label: "Settings", sublabel: "Preferences & notifications" },
+                  { icon: BarChart2, label: "Activity History", sublabel: "See everything you have done on the app" },
+                  { icon: FileText, label: "Farm Records", sublabel: "Your farm documents and certificates" },
+                  { icon: Users, label: "Invite Farmers", sublabel: "Invite other farmers and earn rewards" },
+                  { icon: Settings, label: "Settings", sublabel: "Change your app preferences" },
                 ].map((item, i) => {
                   const Icon = item.icon;
                   return (
-                    <div key={i} className={`flex items-center gap-3 px-4 py-3.5 ${i < 3 ? "border-b border-gray-50" : ""} active:bg-gray-50 transition-colors`}>
-                      <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
-                        <Icon className="w-4 h-4 text-gray-500" />
+                    <div
+                      key={i}
+                      className={`flex items-center gap-3 px-4 py-4 ${i < 3 ? "border-b border-gray-50" : ""} active:bg-gray-50 transition-colors`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
+                        <Icon className="w-5 h-5 text-gray-500" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-900">{item.label}</p>
-                        <p className="text-[10px] text-gray-400">{item.sublabel}</p>
+                        <p className="text-sm font-bold text-gray-900">{item.label}</p>
+                        <p className="text-xs text-gray-400">{item.sublabel}</p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-gray-300" />
                     </div>
@@ -346,46 +399,52 @@ export default function Profile() {
 
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-red-500 bg-red-50 font-bold text-sm active:scale-95 transition-transform"
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-red-500 bg-red-50 font-bold text-sm active:scale-95 transition-transform"
             >
               <LogOut className="w-4 h-4" /> Sign Out
             </button>
           </>
         )}
 
-        {/* ACHIEVEMENTS TAB */}
+        {/* BADGES TAB */}
         {activeTab === "achievements" && (
           <>
-            {/* Summary Banner */}
-            <Card className="rounded-2xl border-0 bg-gradient-to-br from-[#FBBF24]/20 to-[#FBBF24]/5 shadow-sm">
+            <Card className="rounded-2xl border-0 bg-gradient-to-br from-[#1E3A8A] to-blue-700 shadow-sm">
               <CardContent className="p-4 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-[#FBBF24] flex items-center justify-center shadow-lg shadow-amber-200">
-                  <Trophy className="w-7 h-7 text-white" />
+                <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center shadow-lg shrink-0">
+                  <Star className="w-7 h-7 text-yellow-300" />
                 </div>
-                <div>
-                  <p className="text-2xl font-black text-gray-900">{earnedCount} <span className="text-base font-semibold text-gray-400">/ {ACHIEVEMENTS.length}</span></p>
-                  <p className="text-xs font-bold text-gray-600">Achievements Earned</p>
-                  <Progress value={(earnedCount / ACHIEVEMENTS.length) * 100} className="h-1.5 mt-2 bg-amber-100" />
+                <div className="flex-1">
+                  <p className="text-2xl font-black text-white">
+                    {earnedCount}{" "}
+                    <span className="text-base font-semibold text-blue-200">/ {ACHIEVEMENTS.length} badges</span>
+                  </p>
+                  <p className="text-xs font-bold text-blue-200 mb-2">Keep farming to unlock more!</p>
+                  <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-yellow-400 rounded-full transition-all"
+                      style={{ width: `${(earnedCount / ACHIEVEMENTS.length) * 100}%` }}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Earned */}
             <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Earned ({earnedCount})</h3>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Badges You Earned ({earnedCount})</h3>
               <div className="grid grid-cols-2 gap-3">
                 {ACHIEVEMENTS.filter((a) => a.earned).map((achievement) => {
                   const Icon = achievement.icon;
                   return (
-                    <Card key={achievement.id} className="rounded-2xl border-0 bg-white shadow-sm overflow-hidden">
+                    <Card key={achievement.id} className="rounded-2xl border-0 bg-white shadow-sm">
                       <CardContent className="p-3.5">
-                        <div className={`w-11 h-11 rounded-xl ${achievement.color} flex items-center justify-center mb-2.5`}>
-                          <Icon className="w-5 h-5" />
+                        <div className={`w-12 h-12 rounded-xl ${achievement.color} flex items-center justify-center mb-2.5`}>
+                          <Icon className="w-6 h-6" />
                         </div>
-                        <p className="text-xs font-black text-gray-900 leading-tight mb-0.5">{achievement.title}</p>
-                        <p className="text-[10px] text-gray-400 leading-tight line-clamp-2">{achievement.description}</p>
+                        <p className="text-sm font-black text-gray-900 leading-tight mb-0.5">{achievement.title}</p>
+                        <p className="text-xs text-gray-400 leading-tight">{achievement.description}</p>
                         {achievement.earnedAt && (
-                          <p className="text-[9px] font-bold text-[#16A34A] mt-1.5">{achievement.earnedAt}</p>
+                          <p className="text-[10px] font-bold text-[#16A34A] mt-1.5">✓ Earned {achievement.earnedAt}</p>
                         )}
                       </CardContent>
                     </Card>
@@ -394,25 +453,22 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Locked */}
             <div>
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                Locked ({ACHIEVEMENTS.length - earnedCount})
+                Badges to Unlock ({ACHIEVEMENTS.length - earnedCount})
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 {ACHIEVEMENTS.filter((a) => !a.earned).map((achievement) => {
                   const Icon = achievement.icon;
                   return (
-                    <Card key={achievement.id} className="rounded-2xl border-0 bg-white shadow-sm overflow-hidden opacity-60">
+                    <Card key={achievement.id} className="rounded-2xl border-0 bg-white shadow-sm opacity-60">
                       <CardContent className="p-3.5">
-                        <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center mb-2.5 relative">
-                          <Icon className="w-5 h-5 text-gray-300" />
-                          <div className="absolute inset-0 rounded-xl flex items-center justify-center">
-                            <span className="text-gray-400 text-lg">🔒</span>
-                          </div>
+                        <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mb-2.5">
+                          <Icon className="w-6 h-6 text-gray-300" />
                         </div>
-                        <p className="text-xs font-black text-gray-500 leading-tight mb-0.5">{achievement.title}</p>
-                        <p className="text-[10px] text-gray-400 leading-tight line-clamp-2">{achievement.description}</p>
+                        <p className="text-sm font-black text-gray-500 leading-tight mb-0.5">{achievement.title}</p>
+                        <p className="text-xs text-gray-400 leading-tight">{achievement.description}</p>
+                        <p className="text-[10px] font-bold text-gray-300 mt-1.5">🔒 Not yet earned</p>
                       </CardContent>
                     </Card>
                   );
@@ -422,20 +478,50 @@ export default function Profile() {
           </>
         )}
 
-        {/* READINESS TAB */}
+        {/* LOAN ACCESS TAB */}
         {activeTab === "readiness" && (
           <>
+            <Card className="rounded-2xl border-0 bg-blue-50 shadow-sm">
+              <CardContent className="p-4">
+                <p className="text-sm font-bold text-[#1E3A8A] mb-1">What is this?</p>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  This shows how ready you are to get a loan, insurance, or farm inputs on credit. Keep adding your farm records and doing more on the app to improve your score and unlock better deals.
+                </p>
+              </CardContent>
+            </Card>
+
             {readiness ? (
               <div className="space-y-3">
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Your financial readiness scores help you access credit, insurance, and investment. Improve your farm records and activity to unlock better rates.
-                </p>
                 {[
-                  { title: "Micro-Loan Readiness", data: readiness.loanReadiness, icon: Landmark, color: "#16A34A" },
-                  { title: "Crop Insurance", data: readiness.insuranceReadiness, icon: ShieldCheck, color: "#1E3A8A" },
-                  { title: "Input Credit", data: readiness.investorReadiness, icon: CreditCard, color: "#FBBF24" },
-                  { title: "NGO / Grant Access", data: readiness.ngoReadiness, icon: Award, color: "#9333ea" },
-                ].map(({ title, data, icon: Icon, color }) => {
+                  {
+                    title: "Bank Loan",
+                    sublabel: "Can you get a farming loan?",
+                    data: readiness.loanReadiness,
+                    icon: Landmark,
+                    color: "#16A34A",
+                  },
+                  {
+                    title: "Crop Insurance",
+                    sublabel: "Can you insure your crops?",
+                    data: readiness.insuranceReadiness,
+                    icon: ShieldCheck,
+                    color: "#1E3A8A",
+                  },
+                  {
+                    title: "Buy Inputs on Credit",
+                    sublabel: "Seeds, fertilizer — pay later",
+                    data: readiness.investorReadiness,
+                    icon: CreditCard,
+                    color: "#d97706",
+                  },
+                  {
+                    title: "NGO & Grant Support",
+                    sublabel: "Free help from organisations",
+                    data: readiness.ngoReadiness,
+                    icon: Award,
+                    color: "#9333ea",
+                  },
+                ].map(({ title, sublabel, data, icon: Icon, color }) => {
                   const s = data.score;
                   const isReady = s >= 80;
                   const isAlmost = s >= 55 && s < 80;
@@ -443,29 +529,39 @@ export default function Profile() {
                     <Card key={title} className="rounded-2xl border-0 bg-white shadow-sm">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: color + "15" }}>
-                            <Icon className="w-5 h-5" style={{ color }} />
+                          <div
+                            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                            style={{ backgroundColor: color + "15" }}
+                          >
+                            <Icon className="w-6 h-6" style={{ color }} />
                           </div>
                           <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-bold text-gray-900">{title}</p>
-                              <span className="text-sm font-black" style={{ color }}>{s}%</span>
-                            </div>
-                            <Badge className={`text-[9px] font-bold border-0 mt-0.5 ${
-                              isReady ? "bg-green-100 text-green-700" :
-                              isAlmost ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
-                            }`}>
-                              {isReady ? "Ready" : isAlmost ? "Almost Ready" : "Developing"}
+                            <p className="text-sm font-bold text-gray-900">{title}</p>
+                            <p className="text-xs text-gray-400">{sublabel}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-lg font-black" style={{ color }}>{s}%</span>
+                            <Badge
+                              className={`block text-[9px] font-bold border-0 mt-0.5 ${
+                                isReady
+                                  ? "bg-green-100 text-green-700"
+                                  : isAlmost
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {isReady ? "✓ Ready" : isAlmost ? "Almost" : "Keep Going"}
                             </Badge>
                           </div>
                         </div>
-                        <Progress value={s} className="h-2 bg-gray-100 mb-3" />
+                        <Progress value={s} className="h-3 bg-gray-100 rounded-full mb-3" />
                         {data.tips?.length > 0 && (
-                          <div className="space-y-1.5">
+                          <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
+                            <p className="text-[10px] font-bold text-gray-500 uppercase">To improve:</p>
                             {data.tips.slice(0, 2).map((tip: string, i: number) => (
                               <div key={i} className="flex items-start gap-2">
-                                <div className="w-1 h-1 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: color }} />
-                                <p className="text-[10px] text-gray-500 leading-tight">{tip}</p>
+                                <span className="text-xs shrink-0" style={{ color }}>→</span>
+                                <p className="text-xs text-gray-600 leading-tight">{tip}</p>
                               </div>
                             ))}
                           </div>
@@ -477,11 +573,13 @@ export default function Profile() {
               </div>
             ) : (
               <div className="flex flex-col items-center py-16 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <Landmark className="w-8 h-8 text-gray-300" />
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <Landmark className="w-10 h-10 text-gray-300" />
                 </div>
-                <p className="text-sm font-bold text-gray-500 mb-1">No readiness data yet</p>
-                <p className="text-xs text-gray-400">Add your farm records and activity to generate your readiness scores.</p>
+                <p className="text-base font-bold text-gray-500 mb-1">No scores yet</p>
+                <p className="text-sm text-gray-400 max-w-[220px]">
+                  Add your farm records and stay active on the app to see your loan and insurance readiness.
+                </p>
               </div>
             )}
           </>
