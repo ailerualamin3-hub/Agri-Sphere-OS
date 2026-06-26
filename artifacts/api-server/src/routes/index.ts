@@ -16,6 +16,7 @@ import opportunitiesRouter from "./opportunities";
 import seasonPlannerRouter from "./season-planner";
 import notificationsRouter from "./notifications";
 import scanRouter from "./scan";
+import paymentRouter from "./payment";
 
 const router: IRouter = Router();
 
@@ -37,5 +38,6 @@ router.use("/opportunities", requireAuth, opportunitiesRouter);
 router.use("/season-planner", requireAuth, seasonPlannerRouter);
 router.use("/notifications", requireAuth, notificationsRouter);
 router.use("/scan", requireAuth, scanRouter);
+router.use("/payment", requireAuth, paymentRouter);
 
 export default router;

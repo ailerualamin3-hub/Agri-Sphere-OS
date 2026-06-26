@@ -1,585 +1,254 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import {
-  ShieldCheck, TrendingUp, CheckCircle2, Award, Landmark,
-  CreditCard, ChevronRight, BarChart2,
-  FileText, Settings, LogOut, Sprout, MessageSquare, ShoppingCart,
-  Calendar, Star, Users, Ribbon, BadgeCheck, Wheat, HeartPulse
+  CheckCircle2, MapPin, Camera, ChevronRight,
+  LogOut, Settings, CreditCard, Sprout, Star,
+  Phone, Mail, Tractor, Users, ShieldCheck, Edit2, Loader2
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useGetFarmerProfile,
-  useGetNeuroScore,
-  useGetNeuroScoreBreakdown,
-  useGetReadinessScores,
+  useGetFarms,
+  useGetCrops,
+  useGetLivestock,
   getGetFarmerProfileQueryKey,
-  getGetNeuroScoreQueryKey,
-  getGetNeuroScoreBreakdownQueryKey,
-  getGetReadinessScoresQueryKey,
+  getGetFarmsQueryKey,
+  getGetCropsQueryKey,
+  getGetLivestockQueryKey,
 } from "@workspace/api-client-react";
-type ProfileTab = "overview" | "achievements" | "readiness";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
-const ACHIEVEMENTS = [
-  {
-    id: 1,
-    title: "First Harvest",
-    description: "You recorded your first crop harvest",
-    icon: Wheat,
-    color: "bg-green-50 text-[#16A34A]",
-    earned: true,
-    earnedAt: "Jan 2026",
-  },
-  {
-    id: 2,
-    title: "AI User",
-    description: "You used FarmGPT AI helper 5+ times",
-    icon: Sprout,
-    color: "bg-blue-50 text-[#1E3A8A]",
-    earned: true,
-    earnedAt: "Mar 2026",
-  },
-  {
-    id: 3,
-    title: "Community Star",
-    description: "Farmers liked your posts 10+ times",
-    icon: Users,
-    color: "bg-purple-50 text-purple-600",
-    earned: true,
-    earnedAt: "Apr 2026",
-  },
-  {
-    id: 4,
-    title: "Market Seller",
-    description: "You listed 3+ products in the market",
-    icon: ShoppingCart,
-    color: "bg-amber-50 text-amber-600",
-    earned: true,
-    earnedAt: "May 2026",
-  },
-  {
-    id: 5,
-    title: "Season Planner",
-    description: "You created your first planting plan",
-    icon: Calendar,
-    color: "bg-teal-50 text-teal-600",
-    earned: false,
-    earnedAt: null,
-  },
-  {
-    id: 6,
-    title: "Farm Doctor",
-    description: "You completed 5 crop or animal checks",
-    icon: HeartPulse,
-    color: "bg-red-50 text-red-500",
-    earned: false,
-    earnedAt: null,
-  },
-  {
-    id: 7,
-    title: "Verified Farmer",
-    description: "Your account is fully verified",
-    icon: BadgeCheck,
-    color: "bg-yellow-50 text-yellow-600",
-    earned: true,
-    earnedAt: "Feb 2026",
-  },
-  {
-    id: 8,
-    title: "Animal Guardian",
-    description: "All your animals stayed healthy above 80%",
-    icon: Ribbon,
-    color: "bg-orange-50 text-orange-500",
-    earned: false,
-    earnedAt: null,
-  },
-  {
-    id: 9,
-    title: "Record Keeper",
-    description: "You kept farm records for 3 months in a row",
-    icon: FileText,
-    color: "bg-indigo-50 text-indigo-600",
-    earned: false,
-    earnedAt: null,
-  },
-  {
-    id: 10,
-    title: "Community Voice",
-    description: "You posted in the community 10+ times",
-    icon: MessageSquare,
-    color: "bg-pink-50 text-pink-500",
-    earned: false,
-    earnedAt: null,
-  },
-];
-
-function InitialsAvatar({ name, size = "lg" }: { name: string; size?: "sm" | "lg" }) {
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
-  const colors = [
-    "from-green-500 to-green-600",
-    "from-blue-600 to-blue-700",
-    "from-purple-500 to-purple-600",
-    "from-amber-500 to-amber-600",
-    "from-teal-500 to-teal-600",
-    "from-rose-500 to-rose-600",
-  ];
-  const colorIndex =
-    name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % colors.length;
-  const gradient = colors[colorIndex];
-
-  const sizeClass = size === "lg" ? "w-20 h-20 text-2xl" : "w-10 h-10 text-sm";
-
-  return (
-    <div
-      className={`${sizeClass} rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center font-black text-white shadow-xl border-2 border-white/30 shrink-0`}
-    >
-      {initials}
-    </div>
-  );
+const TOKEN_KEY = "frege_auth_token";
+async function apiFetch(path: string, options?: RequestInit) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`/api${path}`, { ...options, headers: { ...headers, ...(options?.headers as Record<string, string>) } });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
 }
 
-function levelColor(level: string) {
-  const l = (level ?? "").toLowerCase();
-  if (l.includes("gold")) return { bg: "bg-amber-100", text: "text-amber-700", dot: "bg-amber-500" };
-  if (l.includes("silver")) return { bg: "bg-gray-100", text: "text-gray-700", dot: "bg-gray-400" };
-  if (l.includes("bronze")) return { bg: "bg-orange-100", text: "text-orange-700", dot: "bg-orange-400" };
-  return { bg: "bg-blue-100", text: "text-blue-700", dot: "bg-blue-400" };
+function getExperienceLevel(joinedAt: string): { label: string; color: string; desc: string } {
+  const months = (Date.now() - new Date(joinedAt).getTime()) / (1000 * 60 * 60 * 24 * 30);
+  if (months < 3) return { label: "New Farmer", color: "bg-blue-100 text-blue-700", desc: "Just getting started" };
+  if (months < 12) return { label: "Growing Farmer", color: "bg-amber-100 text-amber-700", desc: "Building experience" };
+  return { label: "Experienced Farmer", color: "bg-green-100 text-[#16A34A]", desc: "Trusted on FregeOS" };
 }
 
 export default function Profile() {
   const [, setLocation] = useLocation();
-  const { logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<ProfileTab>("overview");
+  const { farmer: authFarmer, logout } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  const handleSignOut = () => {
-    logout();
-    setLocation("/login");
+  const { data: profile, isLoading } = useGetFarmerProfile({ query: { queryKey: getGetFarmerProfileQueryKey() } });
+  const { data: farms } = useGetFarms({ query: { queryKey: getGetFarmsQueryKey() } });
+  const { data: crops } = useGetCrops({ query: { queryKey: getGetCropsQueryKey() } });
+  const { data: livestock } = useGetLivestock({ query: { queryKey: getGetLivestockQueryKey() } });
+
+  const joinedAt = (profile as any)?.joinedAt ?? new Date().toISOString();
+  const experience = getExperienceLevel(joinedAt);
+  const joinedDate = new Date(joinedAt).toLocaleDateString("en-NG", { month: "long", year: "numeric" });
+  const farmerId = profile?.id ?? 1;
+  const farmerIdDisplay = `FRG-${String(farmerId).padStart(6, "0")}`;
+  const avatarUrl = (profile as any)?.avatarUrl;
+  const isPro = ((profile as any)?.credits ?? 0) > 0;
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { toast({ title: "Image too large", description: "Please use an image under 2MB.", variant: "destructive" }); return; }
+    setIsUploadingAvatar(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const base64 = ev.target?.result as string;
+        await apiFetch("/farmer/profile", { method: "PATCH", body: JSON.stringify({ avatarUrl: base64 }) });
+        queryClient.invalidateQueries({ queryKey: getGetFarmerProfileQueryKey() });
+        toast({ title: "Photo updated!", description: "Your profile picture has been saved." });
+        setIsUploadingAvatar(false);
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      toast({ title: "Upload failed", description: "Could not save photo. Try again.", variant: "destructive" });
+      setIsUploadingAvatar(false);
+    }
   };
 
-  const { data: profile, isLoading: isProfileLoading } = useGetFarmerProfile({ query: { queryKey: getGetFarmerProfileQueryKey() } });
-  const { data: scoreData, isLoading: isScoreLoading } = useGetNeuroScore({ query: { queryKey: getGetNeuroScoreQueryKey() } });
-  const { data: breakdown } = useGetNeuroScoreBreakdown({ query: { queryKey: getGetNeuroScoreBreakdownQueryKey() } });
-  const { data: readiness } = useGetReadinessScores({ query: { queryKey: getGetReadinessScoresQueryKey() } });
+  const handleLogout = () => { logout(); setLocation("/login"); };
 
-  const scoreItems = breakdown
-    ? [
-        { label: "🌾 Crops", sublabel: "How well your crops are doing", value: breakdown.cropPerformance, color: "#16A34A" },
-        { label: "🐄 Animals", sublabel: "Health of your livestock", value: breakdown.livestockPerformance, color: "#f59e0b" },
-        { label: "⚡ Activity", sublabel: "How active you are on the app", value: breakdown.farmActivity, color: "#3b82f6" },
-        { label: "🛒 Market", sublabel: "Buying & selling activity", value: breakdown.marketplaceActivity, color: "#ec4899" },
-        { label: "📋 Records", sublabel: "Quality of your farm records", value: breakdown.farmRecords, color: "#0ea5e9" },
-      ]
-    : [];
-
-  const earnedCount = ACHIEVEMENTS.filter((a) => a.earned).length;
-  const memberLevel = scoreData?.level ?? "";
-  const lc = levelColor(memberLevel);
-  const farmerName = profile?.name ?? "";
+  const menuItems = [
+    { icon: Edit2, label: "Edit My Details", desc: "Change name, phone, location", action: () => toast({ title: "Coming soon", description: "Profile editing will be available soon." }) },
+    { icon: CreditCard, label: "Upgrade to Pro", desc: isPro ? "You have Pro access" : "Unlock unlimited features", action: () => setLocation("/payment"), highlight: !isPro },
+    { icon: Tractor, label: "My Farms", desc: `${farms?.length ?? 0} farm(s) registered`, action: () => setLocation("/farm") },
+    { icon: Settings, label: "Settings & Notifications", desc: "App preferences", action: () => toast({ title: "Coming soon" }) },
+    { icon: ShieldCheck, label: "Help & Support", desc: "WhatsApp: 0800-FREGE-AI", action: () => toast({ title: "Support", description: "WhatsApp 0800-FREGE-AI for help." }) },
+  ];
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* Profile Header */}
-      <div className="bg-gradient-to-br from-[#1E3A8A] to-blue-700 px-4 pt-12 pb-0 relative overflow-hidden">
-        <div className="absolute top-0 right-0 opacity-5">
-          <ShieldCheck className="w-48 h-48" />
-        </div>
-
-        <div className="flex items-start gap-4 mb-5 relative z-10">
-          {isProfileLoading ? (
-            <Skeleton className="w-20 h-20 rounded-2xl bg-white/20" />
-          ) : farmerName ? (
-            <div className="relative">
-              <InitialsAvatar name={farmerName} size="lg" />
-              {profile?.verificationStatus === "verified" && (
-                <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-[#16A34A] rounded-full flex items-center justify-center border-2 border-white shadow-md">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                </div>
+    <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Header */}
+      <div className="bg-gradient-to-br from-[#1E3A8A] to-blue-700 px-4 pt-12 pb-6">
+        <div className="flex items-start gap-4">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-white/30 bg-white/20 flex items-center justify-center">
+              {isLoading ? (
+                <Skeleton className="w-full h-full" />
+              ) : avatarUrl ? (
+                <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-3xl font-black text-white">
+                  {(profile?.name ?? authFarmer?.name ?? "F").charAt(0).toUpperCase()}
+                </span>
               )}
             </div>
-          ) : (
-            <Skeleton className="w-20 h-20 rounded-2xl bg-white/20" />
-          )}
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="absolute -bottom-2 -right-2 w-7 h-7 bg-[#16A34A] rounded-full flex items-center justify-center border-2 border-white shadow-lg"
+            >
+              {isUploadingAvatar ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" /> : <Camera className="w-3.5 h-3.5 text-white" />}
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+          </div>
 
+          {/* Name & details */}
           <div className="flex-1 min-w-0">
-            {isProfileLoading ? (
+            {isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-6 w-36 bg-white/20 rounded" />
                 <Skeleton className="h-3 w-24 bg-white/20 rounded" />
               </div>
             ) : (
               <>
-                <h1 className="text-xl font-black text-white mb-0.5 truncate">{profile?.name}</h1>
-                <p className="text-blue-200 text-xs font-medium">ID: FRG-{(profile?.id ?? 1).toString().padStart(6, "0")}</p>
-                <p className="text-blue-200 text-xs">{profile?.state}, Nigeria</p>
-                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                  {memberLevel && (
-                    <span className={`inline-flex items-center gap-1 ${lc.bg} ${lc.text} text-[10px] font-bold px-2 py-0.5 rounded-full`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${lc.dot}`} />
-                      {memberLevel} Farmer
-                    </span>
-                  )}
-                  {profile?.verificationStatus === "verified" && (
+                <h1 className="text-xl font-black text-white mb-0.5 truncate">{profile?.name ?? authFarmer?.name}</h1>
+                <p className="text-blue-200 text-xs font-mono font-bold mb-1">{farmerIdDisplay}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${experience.color}`}>
+                    <Star className="w-2.5 h-2.5" /> {experience.label}
+                  </span>
+                  {(profile?.verificationStatus ?? "verified") === "verified" && (
                     <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
                       <CheckCircle2 className="w-3 h-3" /> Verified
                     </span>
                   )}
-                  <span className="inline-flex items-center gap-1 bg-white/10 text-blue-100 text-[10px] font-bold px-2 py-0.5 rounded-full capitalize">
-                    {profile?.farmingType} Farmer
-                  </span>
+                  {isPro && (
+                    <span className="inline-flex items-center gap-1 bg-amber-400/20 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      <Sprout className="w-2.5 h-2.5" /> Pro
+                    </span>
+                  )}
                 </div>
               </>
             )}
           </div>
         </div>
 
-        {/* Farm Trust Score */}
-        {isScoreLoading ? (
-          <Skeleton className="h-24 w-full rounded-2xl bg-white/10" />
-        ) : scoreData ? (
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 relative z-10">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-200 text-xs font-semibold mb-0.5">Farm Trust Score</p>
-                <div className="flex items-end gap-1.5">
-                  <span className="text-4xl font-black text-white leading-none">{scoreData.score}</span>
-                  <span className="text-blue-200 text-xs font-semibold pb-1">/ 100</span>
-                </div>
-                <p className="text-blue-300 text-[10px] mt-0.5">Higher score = better loan & insurance access</p>
-                <div className="flex items-center gap-1 mt-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-green-400" />
-                  <span className="text-green-400 text-xs font-bold">+{scoreData.change30Days} pts this month</span>
-                </div>
-              </div>
-              <div className="relative w-20 h-20">
-                <svg viewBox="0 0 80 80" className="w-20 h-20 -rotate-90">
-                  <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="7" />
-                  <circle
-                    cx="40" cy="40" r="30" fill="none"
-                    stroke={scoreData.score >= 60 ? "#4ade80" : scoreData.score >= 30 ? "#FBBF24" : "#f87171"}
-                    strokeWidth="7"
-                    strokeDasharray={188}
-                    strokeDashoffset={188 - (188 * scoreData.score) / 100}
-                    strokeLinecap="round"
-                    style={{ transition: "stroke-dashoffset 1.5s ease" }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <ShieldCheck className="w-6 h-6 text-white/60" />
-                </div>
-              </div>
-            </div>
+        {/* ID Card info */}
+        <div className="mt-4 bg-white/10 rounded-2xl p-3 grid grid-cols-2 gap-y-2 gap-x-4">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-3.5 h-3.5 text-blue-200 shrink-0" />
+            <span className="text-blue-100 text-xs truncate">{profile?.state ?? authFarmer?.state ?? "—"}, Nigeria</span>
           </div>
-        ) : null}
-
-        {/* Tabs */}
-        <div className="flex mt-4 -mx-4">
-          {([
-            { id: "overview", label: "My Profile" },
-            { id: "achievements", label: "Badges" },
-            { id: "readiness", label: "Loan Access" },
-          ] as { id: ProfileTab; label: string }[]).map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-3 text-xs font-bold border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? "border-[#4ade80] text-white"
-                  : "border-transparent text-blue-300"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          <div className="flex items-center gap-2">
+            <Phone className="w-3.5 h-3.5 text-blue-200 shrink-0" />
+            <span className="text-blue-100 text-xs truncate">{(profile as any)?.phone ?? "—"}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Mail className="w-3.5 h-3.5 text-blue-200 shrink-0" />
+            <span className="text-blue-100 text-xs truncate">{profile?.email ?? "—"}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Tractor className="w-3.5 h-3.5 text-blue-200 shrink-0" />
+            <span className="text-blue-100 text-xs capitalize truncate">{(profile as any)?.farmingType ?? "Mixed"} farming</span>
+          </div>
         </div>
       </div>
 
-      <div className="px-4 pt-5 pb-8 space-y-5">
+      <div className="px-4 pt-4 space-y-4">
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Farms", value: farms?.length ?? 0, icon: Tractor, color: "#16A34A" },
+            { label: "Crops", value: crops?.length ?? 0, icon: Sprout, color: "#1E3A8A" },
+            { label: "Animals", value: livestock?.length ?? 0, icon: Users, color: "#FBBF24" },
+          ].map((s) => (
+            <Card key={s.label} className="rounded-2xl border-0 shadow-sm bg-white">
+              <CardContent className="p-3 text-center">
+                <s.icon className="w-5 h-5 mx-auto mb-1" style={{ color: s.color }} />
+                <p className="text-2xl font-black text-gray-900">{s.value}</p>
+                <p className="text-[10px] text-gray-400 font-semibold">{s.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-        {/* OVERVIEW TAB */}
-        {activeTab === "overview" && (
-          <>
-            {/* Farm Card */}
-            {profile && (
-              <section>
-                <h2 className="text-base font-bold text-gray-900 mb-3">Your Farm Card</h2>
-                <Card className="rounded-2xl border-0 bg-white shadow-sm overflow-hidden">
-                  <div className="h-1.5 w-full bg-gradient-to-r from-[#16A34A] via-[#FBBF24] to-[#1E3A8A]" />
-                  <CardContent className="p-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { label: "Type of Farming", value: profile.farmingType ?? "Mixed", capitalize: true },
-                        { label: "State", value: profile.state ?? "—" },
-                        { label: "Member Level", value: memberLevel || "Beginner" },
-                        { label: "Status", value: profile.verificationStatus ?? "Pending", capitalize: true },
-                        { label: "Joined", value: new Date(profile.joinedAt ?? Date.now()).getFullYear().toString() },
-                        { label: "LGA", value: profile.lga ?? "—" },
-                      ].map((item, i) => (
-                        <div key={i} className="bg-gray-50 rounded-xl p-3">
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-0.5">{item.label}</p>
-                          <p className={`text-sm font-bold text-gray-900 ${item.capitalize ? "capitalize" : ""}`}>{item.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </section>
-            )}
+        {/* Member since */}
+        <Card className="rounded-2xl border-0 shadow-sm bg-white">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5 text-[#16A34A]" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">FregeOS Member</p>
+              <p className="text-xs text-gray-400">Joined {joinedDate} · {experience.desc}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-            {/* Score Breakdown */}
-            {scoreItems.length > 0 && (
-              <section>
-                <h2 className="text-base font-bold text-gray-900 mb-1">Your Score Breakdown</h2>
-                <p className="text-xs text-gray-400 mb-3">See how you are doing in each area of farming</p>
-                <Card className="rounded-2xl border-0 bg-white shadow-sm">
-                  <CardContent className="p-4 space-y-4">
-                    {scoreItems.map((item) => (
-                      <div key={item.label}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div>
-                            <p className="text-sm font-bold text-gray-900">{item.label}</p>
-                            <p className="text-[10px] text-gray-400">{item.sublabel}</p>
-                          </div>
-                          <span className="text-base font-black" style={{ color: item.color }}>{item.value}</span>
-                        </div>
-                        <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-700"
-                            style={{ width: `${item.value}%`, backgroundColor: item.color }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </section>
-            )}
+        {/* Upgrade banner (if not pro) */}
+        {!isPro && (
+          <button onClick={() => setLocation("/payment")} className="w-full">
+            <Card className="rounded-2xl border-0 bg-gradient-to-r from-[#1E3A8A] to-[#16A34A] shadow-md">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <Sprout className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-black text-white">Upgrade to Pro — from ₦1,500/month</p>
+                  <p className="text-xs text-blue-100">Unlimited FarmGPT · Government grants · No ads</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-white shrink-0" />
+              </CardContent>
+            </Card>
+          </button>
+        )}
 
-            {/* Account Menu */}
-            <section>
-              <h2 className="text-base font-bold text-gray-900 mb-3">Account</h2>
-              <Card className="rounded-2xl border-0 bg-white shadow-sm overflow-hidden">
-                {[
-                  { icon: BarChart2, label: "Activity History", sublabel: "See everything you have done on the app" },
-                  { icon: FileText, label: "Farm Records", sublabel: "Your farm documents and certificates" },
-                  { icon: Users, label: "Invite Farmers", sublabel: "Invite other farmers and earn rewards" },
-                  { icon: Settings, label: "Settings", sublabel: "Change your app preferences" },
-                ].map((item, i) => {
-                  const Icon = item.icon;
-                  return (
-                    <div
-                      key={i}
-                      className={`flex items-center gap-3 px-4 py-4 ${i < 3 ? "border-b border-gray-50" : ""} active:bg-gray-50 transition-colors`}
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
-                        <Icon className="w-5 h-5 text-gray-500" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-gray-900">{item.label}</p>
-                        <p className="text-xs text-gray-400">{item.sublabel}</p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-gray-300" />
-                    </div>
-                  );
-                })}
-              </Card>
-            </section>
-
+        {/* Menu */}
+        <Card className="rounded-2xl border-0 shadow-sm bg-white overflow-hidden">
+          {menuItems.map((item, i) => (
             <button
-              onClick={handleSignOut}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-red-500 bg-red-50 font-bold text-sm active:scale-95 transition-transform"
+              key={i}
+              onClick={item.action}
+              className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors ${i < menuItems.length - 1 ? "border-b border-gray-50" : ""}`}
             >
-              <LogOut className="w-4 h-4" /> Sign Out
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${item.highlight ? "bg-[#16A34A]" : "bg-gray-100"}`}>
+                <item.icon className={`w-4 h-4 ${item.highlight ? "text-white" : "text-gray-600"}`} />
+              </div>
+              <div className="flex-1 text-left">
+                <p className={`text-sm font-bold ${item.highlight ? "text-[#16A34A]" : "text-gray-900"}`}>{item.label}</p>
+                <p className="text-xs text-gray-400">{item.desc}</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
             </button>
-          </>
-        )}
+          ))}
+        </Card>
 
-        {/* BADGES TAB */}
-        {activeTab === "achievements" && (
-          <>
-            <Card className="rounded-2xl border-0 bg-gradient-to-br from-[#1E3A8A] to-blue-700 shadow-sm">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center shadow-lg shrink-0">
-                  <Star className="w-7 h-7 text-yellow-300" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-2xl font-black text-white">
-                    {earnedCount}{" "}
-                    <span className="text-base font-semibold text-blue-200">/ {ACHIEVEMENTS.length} badges</span>
-                  </p>
-                  <p className="text-xs font-bold text-blue-200 mb-2">Keep farming to unlock more!</p>
-                  <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-yellow-400 rounded-full transition-all"
-                      style={{ width: `${(earnedCount / ACHIEVEMENTS.length) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Sign Out */}
+        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3.5 bg-red-50 rounded-2xl border border-red-100">
+          <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+            <LogOut className="w-4 h-4 text-red-500" />
+          </div>
+          <p className="text-sm font-bold text-red-500">Sign Out</p>
+        </button>
 
-            <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Badges You Earned ({earnedCount})</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {ACHIEVEMENTS.filter((a) => a.earned).map((achievement) => {
-                  const Icon = achievement.icon;
-                  return (
-                    <Card key={achievement.id} className="rounded-2xl border-0 bg-white shadow-sm">
-                      <CardContent className="p-3.5">
-                        <div className={`w-12 h-12 rounded-xl ${achievement.color} flex items-center justify-center mb-2.5`}>
-                          <Icon className="w-6 h-6" />
-                        </div>
-                        <p className="text-sm font-black text-gray-900 leading-tight mb-0.5">{achievement.title}</p>
-                        <p className="text-xs text-gray-400 leading-tight">{achievement.description}</p>
-                        {achievement.earnedAt && (
-                          <p className="text-[10px] font-bold text-[#16A34A] mt-1.5">✓ Earned {achievement.earnedAt}</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                Badges to Unlock ({ACHIEVEMENTS.length - earnedCount})
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                {ACHIEVEMENTS.filter((a) => !a.earned).map((achievement) => {
-                  const Icon = achievement.icon;
-                  return (
-                    <Card key={achievement.id} className="rounded-2xl border-0 bg-white shadow-sm opacity-60">
-                      <CardContent className="p-3.5">
-                        <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mb-2.5">
-                          <Icon className="w-6 h-6 text-gray-300" />
-                        </div>
-                        <p className="text-sm font-black text-gray-500 leading-tight mb-0.5">{achievement.title}</p>
-                        <p className="text-xs text-gray-400 leading-tight">{achievement.description}</p>
-                        <p className="text-[10px] font-bold text-gray-300 mt-1.5">🔒 Not yet earned</p>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* LOAN ACCESS TAB */}
-        {activeTab === "readiness" && (
-          <>
-            <Card className="rounded-2xl border-0 bg-blue-50 shadow-sm">
-              <CardContent className="p-4">
-                <p className="text-sm font-bold text-[#1E3A8A] mb-1">What is this?</p>
-                <p className="text-xs text-gray-600 leading-relaxed">
-                  This shows how ready you are to get a loan, insurance, or farm inputs on credit. Keep adding your farm records and doing more on the app to improve your score and unlock better deals.
-                </p>
-              </CardContent>
-            </Card>
-
-            {readiness ? (
-              <div className="space-y-3">
-                {[
-                  {
-                    title: "Bank Loan",
-                    sublabel: "Can you get a farming loan?",
-                    data: readiness.loanReadiness,
-                    icon: Landmark,
-                    color: "#16A34A",
-                  },
-                  {
-                    title: "Crop Insurance",
-                    sublabel: "Can you insure your crops?",
-                    data: readiness.insuranceReadiness,
-                    icon: ShieldCheck,
-                    color: "#1E3A8A",
-                  },
-                  {
-                    title: "Buy Inputs on Credit",
-                    sublabel: "Seeds, fertilizer — pay later",
-                    data: readiness.investorReadiness,
-                    icon: CreditCard,
-                    color: "#d97706",
-                  },
-                  {
-                    title: "NGO & Grant Support",
-                    sublabel: "Free help from organisations",
-                    data: readiness.ngoReadiness,
-                    icon: Award,
-                    color: "#9333ea",
-                  },
-                ].map(({ title, sublabel, data, icon: Icon, color }) => {
-                  const s = data.score;
-                  const isReady = s >= 80;
-                  const isAlmost = s >= 55 && s < 80;
-                  return (
-                    <Card key={title} className="rounded-2xl border-0 bg-white shadow-sm">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div
-                            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                            style={{ backgroundColor: color + "15" }}
-                          >
-                            <Icon className="w-6 h-6" style={{ color }} />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-bold text-gray-900">{title}</p>
-                            <p className="text-xs text-gray-400">{sublabel}</p>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-lg font-black" style={{ color }}>{s}%</span>
-                            <Badge
-                              className={`block text-[9px] font-bold border-0 mt-0.5 ${
-                                isReady
-                                  ? "bg-green-100 text-green-700"
-                                  : isAlmost
-                                  ? "bg-amber-100 text-amber-700"
-                                  : "bg-red-100 text-red-700"
-                              }`}
-                            >
-                              {isReady ? "✓ Ready" : isAlmost ? "Almost" : "Keep Going"}
-                            </Badge>
-                          </div>
-                        </div>
-                        <Progress value={s} className="h-3 bg-gray-100 rounded-full mb-3" />
-                        {data.tips?.length > 0 && (
-                          <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
-                            <p className="text-[10px] font-bold text-gray-500 uppercase">To improve:</p>
-                            {data.tips.slice(0, 2).map((tip: string, i: number) => (
-                              <div key={i} className="flex items-start gap-2">
-                                <span className="text-xs shrink-0" style={{ color }}>→</span>
-                                <p className="text-xs text-gray-600 leading-tight">{tip}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center py-16 text-center">
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <Landmark className="w-10 h-10 text-gray-300" />
-                </div>
-                <p className="text-base font-bold text-gray-500 mb-1">No scores yet</p>
-                <p className="text-sm text-gray-400 max-w-[220px]">
-                  Add your farm records and stay active on the app to see your loan and insurance readiness.
-                </p>
-              </div>
-            )}
-          </>
-        )}
+        <p className="text-center text-[10px] text-gray-300 pb-2">FREGE AI v1.0 · FregeOS for African Agriculture</p>
       </div>
     </div>
   );

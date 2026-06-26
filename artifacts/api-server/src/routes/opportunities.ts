@@ -1,18 +1,21 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
-import { governmentOpportunitiesTable, scanResultsTable } from "@workspace/db";
+import { db, farmersTable, governmentOpportunitiesTable, scanResultsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 
 const router = Router();
 
 router.get("/", async (req, res) => {
   try {
+    const [farmer] = await db.select({ credits: farmersTable.credits }).from(farmersTable).where(eq(farmersTable.id, req.farmerId!)).limit(1);
+    const isPro = (farmer?.credits ?? 0) > 0;
+
     const opportunities = await db
       .select()
       .from(governmentOpportunitiesTable)
       .where(eq(governmentOpportunitiesTable.isActive, true))
       .orderBy(desc(governmentOpportunitiesTable.isFeatured), desc(governmentOpportunitiesTable.createdAt));
-    res.json(opportunities);
+
+    res.json(opportunities.map((o: any) => ({ ...o, locked: !isPro })));
   } catch (err) {
     req.log.error({ err }, "Failed to get opportunities");
     res.status(500).json({ error: "Internal server error" });

@@ -18,6 +18,7 @@ import Market from "@/pages/market";
 import Profile from "@/pages/profile";
 import Diagnose from "@/pages/diagnose";
 import Opportunities from "@/pages/opportunities";
+import Payment from "@/pages/payment";
 import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/layout";
 
@@ -92,6 +93,9 @@ function AppRouter() {
       </Route>
       <Route path="/opportunities">
         <ProtectedRoute><Layout><Opportunities /></Layout></ProtectedRoute>
+      </Route>
+      <Route path="/payment">
+        <ProtectedRoute><Payment /></ProtectedRoute>
       </Route>
       <Route path="/scan">
         <ProtectedRoute><Layout><Diagnose /></Layout></ProtectedRoute>

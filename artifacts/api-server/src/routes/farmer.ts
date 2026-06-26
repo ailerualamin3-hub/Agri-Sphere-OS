@@ -39,7 +39,7 @@ router.get("/profile", async (req, res) => {
 
 router.patch("/profile", async (req, res) => {
   try {
-    const { name, email, state, lga, farmingType, onboardingComplete } = req.body;
+    const { name, email, state, lga, farmingType, onboardingComplete, avatarUrl } = req.body;
     const updateData: Record<string, unknown> = {};
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email;
@@ -47,6 +47,7 @@ router.patch("/profile", async (req, res) => {
     if (lga !== undefined) updateData.lga = lga;
     if (farmingType !== undefined) updateData.farmingType = farmingType;
     if (onboardingComplete !== undefined) updateData.onboardingComplete = onboardingComplete;
+    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
 
     const [updated] = await db
       .update(farmersTable)

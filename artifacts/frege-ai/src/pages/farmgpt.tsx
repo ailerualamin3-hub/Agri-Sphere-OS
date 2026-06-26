@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Bot, Send, Mic, MicOff, Menu, Plus, X, Globe } from "lucide-react";
+import { useLocation } from "wouter";
+import { Bot, Send, Mic, MicOff, Menu, Plus, X, Globe, Zap, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -86,6 +87,7 @@ async function apiFetch(path: string, options?: RequestInit) {
 export default function FarmGpt() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
@@ -93,15 +95,26 @@ export default function FarmGpt() {
   const [isListening, setIsListening] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
+  const [usage, setUsage] = useState({ isPro: false, used: 0, limit: 5, remaining: 5 });
+  const [limitReached, setLimitReached] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const fetchUsage = useCallback(() => {
+    apiFetch("/farmgpt/usage").then((d) => {
+      setUsage(d);
+      setLimitReached(!d.isPro && d.used >= d.limit);
+    }).catch(() => {});
+  }, []);
 
   const { data: conversations, refetch: refetchConversations } = useGetFarmGptConversations({ query: { queryKey: getGetFarmGptConversationsQueryKey() } });
   const { data: messages, isLoading: isMessagesLoading } = useGetFarmGptMessages(
     activeConversationId ?? 0,
     { query: { enabled: !!activeConversationId, queryKey: getGetFarmGptMessagesQueryKey(activeConversationId ?? 0) } }
   );
+
+  useEffect(() => { fetchUsage(); }, [fetchUsage]);
 
   useEffect(() => {
     if (conversations && conversations.length > 0 && !activeConversationId) {
@@ -157,10 +170,16 @@ export default function FarmGpt() {
             } else if (data.type === "done") {
               setIsStreaming(false);
               setStreamingText("");
+              fetchUsage();
               queryClient.invalidateQueries({ queryKey: getGetFarmGptMessagesQueryKey(convId) });
               queryClient.invalidateQueries({ queryKey: getGetFarmGptConversationsQueryKey() });
             } else if (data.type === "error") {
-              throw new Error(data.message);
+              if (data.error === "message_limit_reached") {
+                setLimitReached(true);
+                fetchUsage();
+              } else {
+                throw new Error(data.message);
+              }
             }
           } catch {}
         }
@@ -257,7 +276,19 @@ export default function FarmGpt() {
               <h1 className="text-base font-bold text-gray-900">FarmGPT</h1>
               <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">Online</span>
             </div>
-            <div className="flex gap-1.5 mt-0.5 overflow-x-auto no-scrollbar">
+            {!usage.isPro && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="flex gap-0.5">
+                {Array.from({ length: usage.limit }).map((_, i) => (
+                  <div key={i} className={`w-3 h-1.5 rounded-full ${i < usage.used ? "bg-amber-400" : "bg-gray-200"}`} />
+                ))}
+              </div>
+              <span className={`text-[10px] font-bold ${limitReached ? "text-red-500" : "text-gray-400"}`}>
+                {limitReached ? "Free limit reached" : `${usage.remaining} free ${usage.remaining === 1 ? "message" : "messages"} left`}
+              </span>
+            </div>
+          )}
+          <div className="flex gap-1.5 mt-0.5 overflow-x-auto no-scrollbar">
               {LANGUAGES.map((lang) => (
                 <button
                   key={lang.label}
@@ -388,6 +419,25 @@ export default function FarmGpt() {
       </div>
 
       <div className="bg-white border-t border-gray-100 px-3 py-3">
+        {limitReached && (
+          <div className="mb-3 bg-gradient-to-r from-[#1E3A8A] to-[#16A34A] rounded-2xl p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-white">You've used your 5 free messages</p>
+                <p className="text-xs text-blue-100">Upgrade to Pro for unlimited FarmGPT access</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setLocation("/payment")}
+              className="w-full bg-white text-[#1E3A8A] font-black text-sm py-2.5 rounded-xl flex items-center justify-center gap-2"
+            >
+              <Zap className="w-4 h-4" /> Upgrade to Pro — from ₦1,500/month
+            </button>
+          </div>
+        )}
         {isListening && (
           <div className="flex items-center gap-2 px-3 py-2 mb-2 bg-red-50 rounded-xl border border-red-100">
             <div className="flex gap-0.5">
@@ -418,7 +468,7 @@ export default function FarmGpt() {
           <Button
             type="submit"
             size="icon"
-            disabled={!inputValue.trim() || isStreaming}
+            disabled={!inputValue.trim() || isStreaming || limitReached}
             className="w-11 h-11 rounded-2xl bg-[#16A34A] hover:bg-[#15803d] disabled:opacity-40 shrink-0"
           >
             <Send className="w-4 h-4" />

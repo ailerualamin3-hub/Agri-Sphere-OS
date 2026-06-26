@@ -4,3 +4,5 @@
 - [FarmGPT streaming](farmgpt-streaming.md) — SSE streaming at /api/farmgpt/conversations/:id/messages/stream; farm scan history injected into Gemini system prompt for personalized advice
 - [Weather real data](weather-real-data.md) — Open-Meteo API (free, no key) used in climate.ts; maps farmer's state to lat/lng; WMO weather codes mapped to conditions
 - [Market farm-insights endpoint](market-farm-insights.md) — /api/market/farm-insights returns location + crop/livestock-specific price advice from farmer's actual farm data
+- [Monetization & paywall pattern](monetization-paywall.md) — isPro = credits > 0 in farmersTable; FarmGPT limit=5 free msgs counted via user-role messages; payment at /api/payment via Paystack; PAYSTACK_SECRET_KEY needed
+- [Community groups location pattern](community-groups.md) — farmerGroupsTable has no state field; frontend uses LOCAL_GROUPS_BY_STATE keyed by farmer.state from AuthFarmer; fallback to default national groups

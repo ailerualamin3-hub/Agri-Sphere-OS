@@ -64,6 +64,14 @@ export default function Farm() {
   const { data: farmSummary } = useGetFarmSummary({ query: { queryKey: getGetFarmSummaryQueryKey() } });
   const { data: livestockSummary } = useGetLivestockSummary({ query: { queryKey: getGetLivestockSummaryQueryKey() } });
 
+  const avgCropHealth = crops?.length
+    ? Math.round(crops.reduce((s, c) => s + ((c as any).healthScore ?? 75), 0) / crops.length)
+    : farmSummary?.avgHealthScore ?? 75;
+  const avgLivestockHealth = livestock?.length
+    ? Math.round(livestock.reduce((s, l) => s + ((l as any).healthScore ?? 80), 0) / livestock.length)
+    : farmSummary?.avgHealthScore ?? 80;
+  const soilHealth = Math.min(100, Math.round((farmSummary?.avgHealthScore ?? 72) * 0.93));
+
   const tabs: { id: Tab; label: string }[] = [
     { id: "overview", label: "Overview" },
     { id: "crops", label: "Crops" },
@@ -109,14 +117,14 @@ export default function Farm() {
             <div className="grid grid-cols-2 gap-3">
               <Card className="rounded-xl border-0 bg-white shadow-sm">
                 <CardContent className="p-3.5">
-                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Total Farms</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Number of Farms</p>
                   <p className="text-2xl font-black text-[#16A34A]">{farmSummary.totalFarms}</p>
                 </CardContent>
               </Card>
               <Card className="rounded-xl border-0 bg-white shadow-sm">
                 <CardContent className="p-3.5">
-                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Total Hectares</p>
-                  <p className="text-2xl font-black text-[#1E3A8A]">{farmSummary.totalHectares} ha</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Total Farm Size</p>
+                  <p className="text-2xl font-black text-[#1E3A8A]">{farmSummary.totalHectares}<span className="text-sm font-bold"> ha</span></p>
                 </CardContent>
               </Card>
             </div>
@@ -135,21 +143,21 @@ export default function Farm() {
                 <div className="space-y-3">
                   <div>
                     <div className="flex justify-between text-[10px] font-semibold text-gray-500 mb-1.5">
-                      <span>Crop Health</span>
+                      <span>🌾 How your crops are doing</span>
                     </div>
-                    <HealthBar score={82} color="#16A34A" />
+                    <HealthBar score={avgCropHealth} color="#16A34A" />
                   </div>
                   <div>
                     <div className="flex justify-between text-[10px] font-semibold text-gray-500 mb-1.5">
-                      <span>Livestock Health</span>
+                      <span>🐄 How your animals are doing</span>
                     </div>
-                    <HealthBar score={85} color="#1E3A8A" />
+                    <HealthBar score={avgLivestockHealth} color="#1E3A8A" />
                   </div>
                   <div>
                     <div className="flex justify-between text-[10px] font-semibold text-gray-500 mb-1.5">
-                      <span>Soil Health</span>
+                      <span>🌱 How healthy your soil is</span>
                     </div>
-                    <HealthBar score={73} color="#FBBF24" />
+                    <HealthBar score={soilHealth} color="#FBBF24" />
                   </div>
                 </div>
               </CardContent>

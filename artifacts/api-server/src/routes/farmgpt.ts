@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { db, conversationsTable, messagesTable, scanResultsTable } from "@workspace/db";
-import { eq, desc, count } from "drizzle-orm";
+import { db, conversationsTable, messagesTable, scanResultsTable, farmersTable } from "@workspace/db";
+import { eq, desc, count, and, inArray } from "drizzle-orm";
+
+const FREE_MESSAGE_LIMIT = 5;
 
 const router = Router();
 
@@ -126,11 +128,40 @@ router.get("/conversations/:conversationId/messages", async (req, res) => {
   }
 });
 
+router.get("/usage", async (req, res) => {
+  try {
+    const farmerId = req.farmerId!;
+    const [farmerData] = await db.select({ credits: farmersTable.credits }).from(farmersTable).where(eq(farmersTable.id, farmerId)).limit(1);
+    const isPro = (farmerData?.credits ?? 0) > 0;
+    const farmerConvos = await db.select({ id: conversationsTable.id }).from(conversationsTable).where(eq(conversationsTable.farmerId, farmerId));
+    let used = 0;
+    if (farmerConvos.length > 0) {
+      const [{ count: msgCount }] = await db.select({ count: count() }).from(messagesTable).where(and(inArray(messagesTable.conversationId, farmerConvos.map(c => c.id)), eq(messagesTable.role, "user")));
+      used = Number(msgCount);
+    }
+    res.json({ isPro, used, limit: FREE_MESSAGE_LIMIT, remaining: isPro ? 999 : Math.max(0, FREE_MESSAGE_LIMIT - used) });
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/conversations/:conversationId/messages", async (req, res) => {
   try {
     const conversationId = Number(req.params.conversationId);
     const { content, language } = req.body;
     const farmerId = req.farmerId!;
+
+    const [farmerData] = await db.select({ credits: farmersTable.credits }).from(farmersTable).where(eq(farmersTable.id, farmerId)).limit(1);
+    const isPro = (farmerData?.credits ?? 0) > 0;
+    if (!isPro) {
+      const farmerConvos = await db.select({ id: conversationsTable.id }).from(conversationsTable).where(eq(conversationsTable.farmerId, farmerId));
+      if (farmerConvos.length > 0) {
+        const [{ count: msgCount }] = await db.select({ count: count() }).from(messagesTable).where(and(inArray(messagesTable.conversationId, farmerConvos.map(c => c.id)), eq(messagesTable.role, "user")));
+        if (Number(msgCount) >= FREE_MESSAGE_LIMIT) {
+          return res.status(402).json({ error: "message_limit_reached", limit: FREE_MESSAGE_LIMIT, used: Number(msgCount) });
+        }
+      }
+    }
 
     const [userMsg] = await db.insert(messagesTable).values({ conversationId, role: "user", content }).returning();
 
@@ -193,6 +224,19 @@ router.post("/conversations/:conversationId/messages/stream", async (req, res) =
     const conversationId = Number(req.params.conversationId);
     const { content, language } = req.body;
     const farmerId = req.farmerId!;
+
+    const [farmerData] = await db.select({ credits: farmersTable.credits }).from(farmersTable).where(eq(farmersTable.id, farmerId)).limit(1);
+    const isPro = (farmerData?.credits ?? 0) > 0;
+    if (!isPro) {
+      const farmerConvos = await db.select({ id: conversationsTable.id }).from(conversationsTable).where(eq(conversationsTable.farmerId, farmerId));
+      if (farmerConvos.length > 0) {
+        const [{ count: msgCount }] = await db.select({ count: count() }).from(messagesTable).where(and(inArray(messagesTable.conversationId, farmerConvos.map(c => c.id)), eq(messagesTable.role, "user")));
+        if (Number(msgCount) >= FREE_MESSAGE_LIMIT) {
+          sendEvent({ type: "error", error: "message_limit_reached", limit: FREE_MESSAGE_LIMIT, used: Number(msgCount) });
+          return res.end();
+        }
+      }
+    }
 
     const [userMsg] = await db.insert(messagesTable).values({ conversationId, role: "user", content }).returning();
     sendEvent({ type: "user_message", message: { id: userMsg.id, role: "user", content, conversationId, createdAt: userMsg.createdAt.toISOString() } });

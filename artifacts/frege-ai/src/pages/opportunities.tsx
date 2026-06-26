@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { useLocation } from "wouter";
 import {
   Landmark, GraduationCap, Tractor, Syringe, Wheat, ChevronRight,
   Calendar, Phone, Mail, ExternalLink, MapPin, Users, Gift,
-  Star, Filter, Building2, Globe2
+  Star, Filter, Building2, Globe2, Lock, Zap
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +54,7 @@ const FILTER_TABS: { id: FilterType; label: string }[] = [
   { id: "training", label: "Training" },
 ];
 
-function OpportunityCard({ opp, onExpand }: { opp: any; onExpand: (o: any) => void }) {
+function OpportunityCard({ opp, onExpand, onLocked }: { opp: any; onExpand: (o: any) => void; onLocked: () => void }) {
   const iconColor = TYPE_COLORS[opp.opportunityType] ?? "bg-gray-50 text-gray-500";
   const icon = TYPE_ICONS[opp.opportunityType] ?? <Star className="w-5 h-5" />;
   const daysLeft = opp.deadline
@@ -113,12 +114,21 @@ function OpportunityCard({ opp, onExpand }: { opp: any; onExpand: (o: any) => vo
           </div>
         )}
 
-        <Button
-          onClick={() => onExpand(opp)}
-          className="w-full h-9 rounded-xl bg-[#1E3A8A] hover:bg-blue-900 text-white font-bold text-xs flex items-center gap-1.5"
-        >
-          View Details & Apply <ChevronRight className="w-3.5 h-3.5" />
-        </Button>
+        {opp.locked ? (
+          <Button
+            onClick={onLocked}
+            className="w-full h-9 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 font-bold text-xs flex items-center gap-1.5"
+          >
+            <Lock className="w-3.5 h-3.5" /> Upgrade to Pro to View
+          </Button>
+        ) : (
+          <Button
+            onClick={() => onExpand(opp)}
+            className="w-full h-9 rounded-xl bg-[#1E3A8A] hover:bg-blue-900 text-white font-bold text-xs flex items-center gap-1.5"
+          >
+            View Details & Apply <ChevronRight className="w-3.5 h-3.5" />
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
@@ -244,6 +254,7 @@ function OpportunityDetail({ opp, onClose }: { opp: any; onClose: () => void }) 
 }
 
 export default function Opportunities() {
+  const [, setLocation] = useLocation();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [selectedOpp, setSelectedOpp] = useState<any>(null);
 
@@ -251,7 +262,9 @@ export default function Opportunities() {
     query: { queryKey: getGetOpportunitiesQueryKey() },
   });
 
-  const filtered = opportunities?.filter((opp) => {
+  const hasLocked = opportunities?.some((o: any) => o.locked) ?? false;
+
+  const filtered = opportunities?.filter((opp: any) => {
     if (activeFilter === "all") return true;
     if (activeFilter === "government" || activeFilter === "ngo") return opp.providerType === activeFilter;
     return opp.opportunityType === activeFilter;
@@ -296,6 +309,20 @@ export default function Opportunities() {
       </div>
 
       <div className="px-4 pt-4 pb-8">
+        {hasLocked && (
+          <button onClick={() => setLocation("/payment")} className="w-full mb-4">
+            <div className="bg-gradient-to-r from-[#1E3A8A] to-[#16A34A] rounded-2xl p-4 flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-black text-white">Upgrade to Pro — from ₦1,500/month</p>
+                <p className="text-xs text-blue-100">Unlock all government grants, NGO programs & loans</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-white shrink-0" />
+            </div>
+          </button>
+        )}
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-48 w-full rounded-2xl" />
@@ -311,8 +338,8 @@ export default function Opportunities() {
               </div>
             </div>
             <div className="space-y-4">
-              {filtered.map((opp) => (
-                <OpportunityCard key={opp.id} opp={opp} onExpand={setSelectedOpp} />
+              {filtered.map((opp: any) => (
+                <OpportunityCard key={opp.id} opp={opp} onExpand={setSelectedOpp} onLocked={() => setLocation("/payment")} />
               ))}
             </div>
           </>

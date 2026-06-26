@@ -176,10 +176,19 @@ router.get("/farm-insights", async (req, res) => {
 router.get("/prices", async (req, res) => {
   try {
     await seedPricesIfEmpty();
+    const farmerId = req.farmerId!;
+    const [farmer] = await db.select({ state: farmersTable.state }).from(farmersTable).where(eq(farmersTable.id, farmerId)).limit(1);
+    const farmerState = farmer?.state ?? "";
     const prices = await db.select().from(marketPricesTable);
-    res.json(prices.map((p) => ({
+    const sorted = [...prices].sort((a, b) => {
+      const aMatch = a.state === farmerState || a.state === "Nationwide" ? 0 : 1;
+      const bMatch = b.state === farmerState || b.state === "Nationwide" ? 0 : 1;
+      return aMatch - bMatch;
+    });
+    res.json(sorted.map((p) => ({
       id: p.id, commodity: p.commodity, pricePerKg: p.pricePerKg, unit: p.unit,
       market: p.market, state: p.state, trend: p.trend, changePercent: p.changePercent,
+      isLocal: p.state === farmerState || p.state === "Nationwide",
       updatedAt: p.updatedAt.toISOString(),
     })));
   } catch (err) {
