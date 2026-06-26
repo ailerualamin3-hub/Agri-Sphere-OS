@@ -148,7 +148,7 @@ router.post("/conversations/:conversationId/messages", async (req, res) => {
 
     let aiContent: string;
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: systemPrompt });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction: systemPrompt });
       const chatHistory = history.slice(-10).map((msg) => ({
         role: msg.role === "assistant" ? "model" : "user",
         parts: [{ text: msg.content }],
@@ -209,7 +209,7 @@ router.post("/conversations/:conversationId/messages/stream", async (req, res) =
 
     const systemPrompt = await buildSystemPromptWithHistory(farmerId, language || "English");
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: systemPrompt });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction: systemPrompt });
     const chatHistory = history.slice(-10).map((msg) => ({
       role: msg.role === "assistant" ? "model" : "user",
       parts: [{ text: msg.content }],

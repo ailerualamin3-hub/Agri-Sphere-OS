@@ -5,6 +5,13 @@ description: SSE streaming for FarmGPT responses and farm history context inject
 
 # FarmGPT Streaming
 
+## Model
+- Use **gemini-2.5-flash** for all Gemini calls (both FarmGPT and scan routes).
+- gemini-1.5-flash is deprecated/404. gemini-2.0-flash also unavailable. Only 2.5-flash works.
+- GEMINI_API_KEY must be set as a secret (not env var).
+
+**Why:** gemini-1.5-flash was removed from Google's API. Confirmed gemini-2.5-flash works as of June 2026.
+
 ## Streaming endpoint
 - POST /api/farmgpt/conversations/:id/messages/stream
 - SSE events: {type:"user_message"}, {type:"chunk", text}, {type:"done", message}, {type:"error"}
