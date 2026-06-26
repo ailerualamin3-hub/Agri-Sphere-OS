@@ -24,7 +24,6 @@ export default function NeuroScore() {
   const radarData = breakdown ? [
     { subject: 'Crops', A: breakdown.cropPerformance, fullMark: 100 },
     { subject: 'Livestock', A: breakdown.livestockPerformance, fullMark: 100 },
-    { subject: 'Community', A: breakdown.communityReputation, fullMark: 100 },
     { subject: 'Activity', A: breakdown.farmActivity, fullMark: 100 },
     { subject: 'Market', A: breakdown.marketplaceActivity, fullMark: 100 },
     { subject: 'Records', A: breakdown.farmRecords, fullMark: 100 },

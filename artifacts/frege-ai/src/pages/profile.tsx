@@ -174,7 +174,6 @@ export default function Profile() {
     ? [
         { label: "🌾 Crops", sublabel: "How well your crops are doing", value: breakdown.cropPerformance, color: "#16A34A" },
         { label: "🐄 Animals", sublabel: "Health of your livestock", value: breakdown.livestockPerformance, color: "#f59e0b" },
-        { label: "👥 Community", sublabel: "Your reputation on FregeOS", value: breakdown.communityReputation, color: "#8b5cf6" },
         { label: "⚡ Activity", sublabel: "How active you are on the app", value: breakdown.farmActivity, color: "#3b82f6" },
         { label: "🛒 Market", sublabel: "Buying & selling activity", value: breakdown.marketplaceActivity, color: "#ec4899" },
         { label: "📋 Records", sublabel: "Quality of your farm records", value: breakdown.farmRecords, color: "#0ea5e9" },

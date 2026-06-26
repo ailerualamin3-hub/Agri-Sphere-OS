@@ -118,11 +118,6 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {(profile?.communityReputation ?? authFarmer?.communityReputation) && (
-              <Badge className="bg-[#FBBF24]/20 text-amber-700 border-amber-200 text-xs font-semibold px-2 py-0.5">
-                {profile?.communityReputation ?? authFarmer?.communityReputation}
-              </Badge>
-            )}
             <NotificationBell unreadCount={notifState.unreadCount} onClick={() => setPanelOpen(true)} />
           </div>
         </div>
