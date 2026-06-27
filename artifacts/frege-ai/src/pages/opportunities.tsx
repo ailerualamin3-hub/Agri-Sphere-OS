@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { useLocation } from "wouter";
 import {
   Landmark, GraduationCap, Tractor, Syringe, Wheat, ChevronRight,
-  Calendar, Phone, Mail, ExternalLink, MapPin, Users, Gift,
-  Star, Filter, Building2, Globe2, Lock, Zap
+  Calendar, Mail, ExternalLink, MapPin, Users, Gift,
+  Star, Filter, Building2, Globe2, Lock, Zap, CheckCircle
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -110,7 +110,7 @@ function OpportunityCard({ opp, onExpand, onLocked }: { opp: any; onExpand: (o: 
         {opp.targetStates?.[0] && (
           <div className="flex items-center gap-1 text-[10px] text-gray-400 font-semibold mb-3">
             <MapPin className="w-3 h-3" />
-            {opp.targetStates.join(", ")}
+            {opp.targetStates.slice(0, 3).join(", ")}{opp.targetStates.length > 3 ? ` +${opp.targetStates.length - 3} more` : ""}
           </div>
         )}
 
@@ -135,6 +135,7 @@ function OpportunityCard({ opp, onExpand, onLocked }: { opp: any; onExpand: (o: 
 }
 
 function OpportunityDetail({ opp, onClose }: { opp: any; onClose: () => void }) {
+  const [, setLocation] = useLocation();
   const iconColor = TYPE_COLORS[opp.opportunityType] ?? "bg-gray-50 text-gray-500";
   const icon = TYPE_ICONS[opp.opportunityType] ?? <Star className="w-5 h-5" />;
 
@@ -191,7 +192,7 @@ function OpportunityDetail({ opp, onClose }: { opp: any; onClose: () => void }) 
         <div className="space-y-2">
           {opp.requirements?.length > 0 ? opp.requirements.map((req: string, i: number) => (
             <div key={i} className="flex items-start gap-2.5 bg-white rounded-xl p-3 shadow-sm">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#16A34A] mt-1.5 shrink-0" />
+              <CheckCircle className="w-3.5 h-3.5 text-[#16A34A] mt-0.5 shrink-0" />
               <p className="text-xs text-gray-700 leading-tight">{req}</p>
             </div>
           )) : (
@@ -216,39 +217,59 @@ function OpportunityDetail({ opp, onClose }: { opp: any; onClose: () => void }) 
         </div>
       </div>
 
+      {/* Contact & Apply — NO phone/call buttons */}
       <div>
-        <h3 className="text-sm font-bold text-gray-900 mb-3">Contact & Apply</h3>
+        <h3 className="text-sm font-bold text-gray-900 mb-3">How to Apply</h3>
         <Card className="rounded-2xl border-0 bg-white shadow-sm">
           <CardContent className="p-4 space-y-3">
-            {opp.contactPhone && (
-              <a href={`tel:${opp.contactPhone}`} className="flex items-center gap-3 text-sm font-semibold text-[#1E3A8A]">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                  <Phone className="w-4 h-4 text-[#1E3A8A]" />
-                </div>
-                {opp.contactPhone}
+            {opp.applicationUrl && (
+              <a
+                href={opp.applicationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full bg-[#16A34A] text-white rounded-xl py-3.5 font-bold text-sm"
+              >
+                <ExternalLink className="w-4 h-4" /> Apply Online Now
               </a>
             )}
             {opp.contactEmail && (
-              <a href={`mailto:${opp.contactEmail}`} className="flex items-center gap-3 text-sm font-semibold text-[#1E3A8A]">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+              <a
+                href={`mailto:${opp.contactEmail}`}
+                className="flex items-center gap-3 text-sm font-semibold text-[#1E3A8A] bg-blue-50 rounded-xl p-3"
+              >
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
                   <Mail className="w-4 h-4 text-[#1E3A8A]" />
                 </div>
-                {opp.contactEmail}
+                <div>
+                  <p className="text-[10px] text-gray-400 font-semibold">Send an email</p>
+                  <p className="text-xs font-bold text-[#1E3A8A]">{opp.contactEmail}</p>
+                </div>
               </a>
             )}
-            {opp.applicationUrl && (
-              <a href={opp.applicationUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full bg-[#16A34A] text-white rounded-xl py-3 font-bold text-sm mt-1"
-              >
-                <ExternalLink className="w-4 h-4" /> Apply Online
-              </a>
-            )}
-            {!opp.contactPhone && !opp.contactEmail && !opp.applicationUrl && (
-              <p className="text-xs text-gray-400 text-center py-2">Contact your nearest ADP or Extension office for details.</p>
+            {!opp.applicationUrl && !opp.contactEmail && (
+              <div className="bg-amber-50 rounded-xl p-3 text-center">
+                <p className="text-xs text-gray-600 font-semibold">
+                  Visit your nearest Agricultural Development Programme (ADP) office or State Ministry of Agriculture to apply.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* FarmGPT tip */}
+      <Card className="rounded-2xl border-0 bg-gradient-to-br from-[#1E3A8A] to-blue-700 shadow-lg">
+        <CardContent className="p-4 text-white">
+          <p className="text-sm font-bold mb-1">Need help applying?</p>
+          <p className="text-xs text-blue-200 mb-3">Ask FarmGPT to help you write your application or explain the requirements in your language.</p>
+          <Button
+            onClick={() => setLocation("/farmgpt")}
+            className="bg-white text-[#1E3A8A] hover:bg-blue-50 font-bold text-sm h-9 w-full rounded-xl"
+          >
+            Ask FarmGPT for Help
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -287,7 +308,7 @@ export default function Opportunities() {
       <div className="bg-white px-4 pt-12 pb-0 sticky top-0 z-20 shadow-sm">
         <div className="mb-3">
           <h1 className="text-xl font-bold text-gray-900">Opportunities</h1>
-          <p className="text-xs text-gray-500">Government & NGO programmes for farmers</p>
+          <p className="text-xs text-gray-500">Real government & NGO programmes for Nigerian farmers</p>
         </div>
 
         {/* Filter pills */}
@@ -316,13 +337,24 @@ export default function Opportunities() {
                 <Zap className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1 text-left">
-                <p className="text-sm font-black text-white">Upgrade to Pro — from ₦1,500/month</p>
+                <p className="text-sm font-black text-white">Upgrade to Pro — from ₦20,000/month</p>
                 <p className="text-xs text-blue-100">Unlock all government grants, NGO programs & loans</p>
               </div>
               <ChevronRight className="w-4 h-4 text-white shrink-0" />
             </div>
           </button>
         )}
+
+        {/* Info banner */}
+        <Card className="rounded-2xl border-0 bg-green-50 shadow-sm mb-4">
+          <CardContent className="p-3 flex gap-3 items-start">
+            <CheckCircle className="w-4 h-4 text-[#16A34A] shrink-0 mt-0.5" />
+            <p className="text-xs text-gray-600 leading-relaxed">
+              All programs listed are <span className="font-bold text-[#16A34A]">real Nigerian government and NGO initiatives</span>. Tap any to see requirements and apply directly.
+            </p>
+          </CardContent>
+        </Card>
+
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-48 w-full rounded-2xl" />

@@ -284,9 +284,10 @@ export default function Market() {
                 }))
                 .sort((a, b) => (a.computedKm ?? Infinity) - (b.computedKm ?? Infinity))
                 .map((market: any) => {
+                  // Opens Google Maps with turn-by-turn directions from current location
                   const mapsUrl = market.lat && market.lng
-                    ? `https://www.openstreetmap.org/?mlat=${market.lat}&mlon=${market.lng}#map=15/${market.lat}/${market.lng}`
-                    : `https://www.openstreetmap.org/search?query=${encodeURIComponent(`${market.name}, ${market.state}, Nigeria`)}`;
+                    ? `https://www.google.com/maps/dir/?api=1&destination=${market.lat},${market.lng}&travelmode=driving`
+                    : `https://www.google.com/maps/search/${encodeURIComponent(`${market.name}, ${market.state}, Nigeria`)}`;
 
                   const distLabel = market.computedKm != null
                     ? market.computedKm < 1
@@ -330,7 +331,7 @@ export default function Market() {
                           rel="noopener noreferrer"
                           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#1E3A8A] text-white text-xs font-bold"
                         >
-                          <Navigation className="w-3.5 h-3.5" /> Get Directions on Map
+                          <Navigation className="w-3.5 h-3.5" /> Get Directions (Google Maps)
                         </a>
                       </CardContent>
                     </Card>
