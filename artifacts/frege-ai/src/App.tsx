@@ -21,6 +21,7 @@ import Opportunities from "@/pages/opportunities";
 import Payment from "@/pages/payment";
 import Reports from "@/pages/reports";
 import SharePage from "@/pages/share";
+import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/layout";
 
@@ -103,6 +104,9 @@ function AppRouter() {
         <ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>
       </Route>
       <Route path="/share/:token" component={SharePage} />
+      <Route path="/settings">
+        <ProtectedRoute><Settings /></ProtectedRoute>
+      </Route>
       <Route path="/scan">
         <ProtectedRoute><Layout><Diagnose /></Layout></ProtectedRoute>
       </Route>

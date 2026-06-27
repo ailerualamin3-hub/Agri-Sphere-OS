@@ -85,10 +85,10 @@ export default function Profile() {
   const handleLogout = () => { logout(); setLocation("/login"); };
 
   const menuItems = [
-    { icon: Edit2, label: "Edit My Details", desc: "Change name, phone, location", action: () => toast({ title: "Coming soon", description: "Profile editing will be available soon." }) },
+    { icon: Edit2, label: "Edit My Details", desc: "Change name, phone, location, farming type", action: () => setLocation("/settings") },
     { icon: CreditCard, label: "Upgrade to Pro", desc: isPro ? "You have Pro access" : "Unlock unlimited features", action: () => setLocation("/payment"), highlight: !isPro },
     { icon: Tractor, label: "My Farms", desc: `${farms?.length ?? 0} farm(s) registered`, action: () => setLocation("/farm") },
-    { icon: Settings, label: "Settings & Notifications", desc: "App preferences", action: () => toast({ title: "Coming soon" }) },
+    { icon: Settings, label: "Settings & Notifications", desc: "Manage preferences and alerts", action: () => setLocation("/settings") },
     { icon: ShieldCheck, label: "Help & Support", desc: "WhatsApp: 0800-FREGE-AI", action: () => toast({ title: "Support", description: "WhatsApp 0800-FREGE-AI for help." }) },
   ];
 

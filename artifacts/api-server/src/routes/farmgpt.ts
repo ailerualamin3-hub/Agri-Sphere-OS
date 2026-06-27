@@ -3,7 +3,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db, conversationsTable, messagesTable, scanResultsTable, farmersTable } from "@workspace/db";
 import { eq, desc, count, and, inArray } from "drizzle-orm";
 
-const FREE_MESSAGE_LIMIT = 5;
+const FREE_MESSAGE_LIMIT = 20;
+const RESET_HOURS = 10;
 
 const router = Router();
 
@@ -74,9 +75,29 @@ async function ensureDefaultConversation(farmerId: number, language: string): Pr
   return convo.id;
 }
 
+async function checkAndResetIfExpired(farmerId: number): Promise<void> {
+  const convos = await db.select({ id: conversationsTable.id }).from(conversationsTable).where(eq(conversationsTable.farmerId, farmerId));
+  if (convos.length === 0) return;
+  const convoIds = convos.map((c) => c.id);
+  const [lastMsg] = await db.select({ createdAt: messagesTable.createdAt }).from(messagesTable)
+    .where(and(inArray(messagesTable.conversationId, convoIds), eq(messagesTable.role, "user")))
+    .orderBy(desc(messagesTable.createdAt)).limit(1);
+  if (!lastMsg) return;
+  const hoursSince = (Date.now() - new Date(lastMsg.createdAt).getTime()) / (1000 * 60 * 60);
+  if (hoursSince >= RESET_HOURS) {
+    for (const id of convoIds) {
+      await db.delete(messagesTable).where(eq(messagesTable.conversationId, id));
+    }
+    await db.delete(conversationsTable).where(inArray(conversationsTable.id, convoIds));
+  }
+}
+
 router.get("/conversations", async (req, res) => {
   try {
     const farmerId = req.farmerId!;
+
+    await checkAndResetIfExpired(farmerId);
+
     const convos = await db
       .select()
       .from(conversationsTable)

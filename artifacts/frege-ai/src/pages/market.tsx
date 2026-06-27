@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   TrendingUp, TrendingDown, Minus, Search, RefreshCw, MapPin,
   AlertCircle, Bot, Loader2, X, Tag, AlertTriangle, ChevronDown,
+  Navigation, Clock, ShoppingBag,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ async function apiFetch(path: string, options?: RequestInit) {
   return data;
 }
 
+type MarketTab = "prices" | "nearby";
 type PriceFilter = "all" | "crops" | "livestock" | "inputs";
 
 interface FarmItem {
@@ -89,6 +91,7 @@ function getRiskColor(risk: string) {
 
 export default function Market() {
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<MarketTab>("prices");
   const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
   const [search, setSearch] = useState("");
   const [farmInsights, setFarmInsights] = useState<FarmInsights | null>(null);
@@ -98,6 +101,8 @@ export default function Market() {
   const [analyzeAction, setAnalyzeAction] = useState<"buy" | "sell">("sell");
   const [analyzeResult, setAnalyzeResult] = useState<AnalysisResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [nearbyMarkets, setNearbyMarkets] = useState<any[]>([]);
+  const [loadingNearby, setLoadingNearby] = useState(false);
 
   const { data: prices, isLoading: pricesLoading, refetch } = useGetMarketPrices({
     query: { queryKey: getGetMarketPricesQueryKey() },
@@ -118,7 +123,23 @@ export default function Market() {
     }
   }, []);
 
+  const loadNearby = useCallback(async () => {
+    setLoadingNearby(true);
+    try {
+      const data = await apiFetch("/market/nearby");
+      setNearbyMarkets(data);
+    } catch {
+      setNearbyMarkets([]);
+    } finally {
+      setLoadingNearby(false);
+    }
+  }, []);
+
   useEffect(() => { loadInsights(); }, [loadInsights]);
+
+  useEffect(() => {
+    if (activeTab === "nearby") loadNearby();
+  }, [activeTab, loadNearby]);
 
   const handleAnalyze = async () => {
     if (!analyzeCommodity) { toast({ title: "Pick a commodity first" }); return; }
@@ -156,8 +177,8 @@ export default function Market() {
     <div className="bg-gray-50 min-h-screen">
 
       {/* ── HEADER ── */}
-      <div className="bg-white px-4 pt-12 pb-4 sticky top-0 z-20 shadow-sm">
-        <div className="flex items-center justify-between">
+      <div className="bg-white px-4 pt-12 pb-0 sticky top-0 z-20 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-xl font-black text-gray-900">AgriMarket</h1>
             <p className="text-xs text-gray-400 flex items-center gap-1">
@@ -181,8 +202,100 @@ export default function Market() {
             </button>
           </div>
         </div>
+        <div className="flex border-b border-gray-100">
+          {([{ id: "prices", label: "Prices & Insights" }, { id: "nearby", label: "Nearby Markets" }] as { id: MarketTab; label: string }[]).map((t) => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)}
+              className={`flex-1 py-2.5 text-xs font-bold border-b-2 transition-colors ${activeTab === t.id ? "border-[#16A34A] text-[#16A34A]" : "border-transparent text-gray-400"}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {activeTab === "nearby" && (
+        <div className="px-4 pt-4 pb-24 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-black text-gray-900">Markets Near You</h2>
+              <p className="text-xs text-gray-400">Based on your registered location</p>
+            </div>
+            <button onClick={loadNearby} className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center">
+              <RefreshCw className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+
+          {loadingNearby ? (
+            <div className="space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}</div>
+          ) : nearbyMarkets.length > 0 ? (
+            <div className="space-y-3">
+              {nearbyMarkets.map((market: any) => {
+                const mapsUrl = `https://www.openstreetmap.org/search?query=${encodeURIComponent(`${market.name}, ${market.state}, Nigeria`)}`;
+                return (
+                  <Card key={market.id} className="rounded-2xl border-0 bg-white shadow-sm">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0 pr-3">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <h3 className="font-bold text-gray-900 truncate">{market.name}</h3>
+                            <span className={`shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-full ${market.isOpen ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                              {market.isOpen ? "OPEN" : "CLOSED"}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <ShoppingBag className="w-3 h-3" /> {market.specialty}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-xs font-black text-[#16A34A]">{market.distance}</p>
+                          <p className="text-[10px] text-gray-400">away</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 mb-3">
+                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                          <Clock className="w-3 h-3" /> {market.hours}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                          <MapPin className="w-3 h-3" /> {market.days}
+                        </div>
+                      </div>
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#1E3A8A] text-white text-xs font-bold"
+                      >
+                        <Navigation className="w-3.5 h-3.5" /> Get Directions on Map
+                      </a>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <Card className="rounded-2xl border-0 bg-white shadow-sm">
+              <CardContent className="p-8 text-center">
+                <MapPin className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+                <p className="text-sm font-bold text-gray-500">No nearby markets found</p>
+                <p className="text-xs text-gray-400 mt-1">Update your state in Settings to see local markets.</p>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="rounded-2xl border-0 bg-blue-50 shadow-sm">
+            <CardContent className="p-4 flex gap-3">
+              <Navigation className="w-5 h-5 text-[#1E3A8A] shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold text-[#1E3A8A] mb-1">How to get directions</p>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Tap "Get Directions on Map" to open OpenStreetMap. You can then use it for navigation or share the location with someone else.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {activeTab === "prices" && (
       <div className="px-4 pt-4 pb-24 space-y-4">
 
         {/* ── SCAN ALERT ── */}
@@ -375,6 +488,7 @@ export default function Market() {
         </Card>
 
       </div>
+      )}
 
       {/* ── AI TRADE ANALYZER PANEL ── */}
       {showAnalyzer && (
