@@ -6,3 +6,5 @@
 - [Market farm-insights endpoint](market-farm-insights.md) — /api/market/farm-insights returns location + crop/livestock-specific price advice from farmer's actual farm data
 - [Monetization & paywall pattern](monetization-paywall.md) — isPro = credits > 0 in farmersTable; FarmGPT limit=5 free msgs counted via user-role messages; payment at /api/payment via Paystack; PAYSTACK_SECRET_KEY needed
 - [Community groups location pattern](community-groups.md) — farmerGroupsTable has no state field; frontend uses LOCAL_GROUPS_BY_STATE keyed by farmer.state from AuthFarmer; fallback to default national groups
+- [Farm Reports & Finance module](farm-reports-finance.md) — /api/reports (protected), /api/finance (protected), /api/share/:token (PUBLIC no-auth); @google/genai must be installed in api-server for community-qa AI answers
+- [Community Q&A Hub](community-qa.md) — communityQuestionsTable + communityAnswersTable; AI answers via Gemini 2.0-flash at /api/community-qa/:id/ai-answer; helpful votes at PATCH /answers/:id/helpful

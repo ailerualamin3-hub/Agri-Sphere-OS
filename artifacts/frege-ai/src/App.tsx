@@ -19,6 +19,8 @@ import Profile from "@/pages/profile";
 import Diagnose from "@/pages/diagnose";
 import Opportunities from "@/pages/opportunities";
 import Payment from "@/pages/payment";
+import Reports from "@/pages/reports";
+import SharePage from "@/pages/share";
 import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/layout";
 
@@ -97,6 +99,10 @@ function AppRouter() {
       <Route path="/payment">
         <ProtectedRoute><Payment /></ProtectedRoute>
       </Route>
+      <Route path="/reports">
+        <ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>
+      </Route>
+      <Route path="/share/:token" component={SharePage} />
       <Route path="/scan">
         <ProtectedRoute><Layout><Diagnose /></Layout></ProtectedRoute>
       </Route>

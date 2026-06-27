@@ -5,7 +5,7 @@ import {
   CloudRain, Wind, Droplets, Sun, Cloud, ChevronRight,
   Zap, Bot, ScanLine, Activity, Sprout, MapPin, Navigation,
   Stethoscope, Shield, Wheat, TrendingUp, TrendingDown,
-  Minus, AlertTriangle, RefreshCw, Landmark, Building2
+  Minus, AlertTriangle, RefreshCw, Landmark, Building2, BarChart3, FileText
 } from "lucide-react";
 import { NotificationBell, NotificationPanel, useNotifications } from "@/components/notification-panel";
 import { Card, CardContent } from "@/components/ui/card";
@@ -408,6 +408,24 @@ export default function Home() {
             </div>
           </section>
         )}
+
+        {/* Finance & Reports */}
+        <section>
+          <button onClick={() => setLocation("/reports")} className="w-full">
+            <Card className="rounded-2xl border-0 shadow-sm bg-gradient-to-r from-[#1E3A8A] to-blue-700 text-white">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                  <BarChart3 className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-bold">Finance & Reports</p>
+                  <p className="text-xs text-blue-200">Record income/expenses · Generate bank-ready reports</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-white/60 shrink-0" />
+              </CardContent>
+            </Card>
+          </button>
+        </section>
 
         {/* 8. Nearby Services */}
         <section>

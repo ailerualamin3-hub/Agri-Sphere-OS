@@ -17,11 +17,18 @@ import seasonPlannerRouter from "./season-planner";
 import notificationsRouter from "./notifications";
 import scanRouter from "./scan";
 import paymentRouter from "./payment";
+import reportsRouter from "./reports";
+import financeRouter from "./finance";
+import shareRouter from "./share";
+import communityQaRouter from "./community-qa";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use("/auth", authRouter);
+
+// Public share route — no auth required
+router.use("/share", shareRouter);
 
 // All routes below require a valid JWT
 router.use("/farmer", requireAuth, farmerRouter);
@@ -39,5 +46,8 @@ router.use("/season-planner", requireAuth, seasonPlannerRouter);
 router.use("/notifications", requireAuth, notificationsRouter);
 router.use("/scan", requireAuth, scanRouter);
 router.use("/payment", requireAuth, paymentRouter);
+router.use("/reports", requireAuth, reportsRouter);
+router.use("/finance", requireAuth, financeRouter);
+router.use("/community-qa", requireAuth, communityQaRouter);
 
 export default router;
