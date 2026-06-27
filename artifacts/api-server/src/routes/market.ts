@@ -21,42 +21,60 @@ const SEED_PRICES = [
   { commodity: "Pepper (dry)", pricePerKg: 1400, unit: "kg", market: "Dawanau Grain Market", state: "Kano", trend: "rising", changePercent: 9.1 },
 ];
 
-const NEARBY_MARKETS: Record<string, Array<{ name: string; specialty: string; days: string; hours: string; lat?: number; lng?: number }>> = {
+const NEARBY_MARKETS: Record<string, Array<{ name: string; specialty: string; days: string; hours: string; lat: number; lng: number }>> = {
   default: [
-    { name: "Dawanau Grain Market", specialty: "Grains & Pulses", days: "Mon–Sat", hours: "7am–6pm" },
-    { name: "Rimi Cattle Market", specialty: "Livestock", days: "Tue & Fri", hours: "8am–4pm" },
-    { name: "Yankaba Produce Market", specialty: "Fresh Produce", days: "Daily", hours: "6am–8pm" },
-    { name: "Sabon Gari Market", specialty: "General Agric", days: "Daily", hours: "8am–7pm" },
+    { name: "Dawanau Grain Market", specialty: "Grains & Pulses", days: "Mon–Sat", hours: "7am–6pm", lat: 12.0022, lng: 8.5920 },
+    { name: "Rimi Cattle Market", specialty: "Livestock", days: "Tue & Fri", hours: "8am–4pm", lat: 11.9978, lng: 8.5167 },
+    { name: "Yankaba Produce Market", specialty: "Fresh Produce", days: "Daily", hours: "6am–8pm", lat: 11.9889, lng: 8.5336 },
+    { name: "Sabon Gari Market", specialty: "General Agric", days: "Daily", hours: "8am–7pm", lat: 12.0050, lng: 8.5190 },
   ],
   Lagos: [
-    { name: "Mile 12 International Market", specialty: "Fresh Produce & Grains", days: "Daily", hours: "5am–8pm" },
-    { name: "Oshodi Market", specialty: "Livestock & Poultry", days: "Daily", hours: "7am–7pm" },
-    { name: "Mushin Agric Market", specialty: "General Agric", days: "Mon–Sat", hours: "8am–6pm" },
-    { name: "Ikorodu Agric Hub", specialty: "Crops & Inputs", days: "Wed & Sat", hours: "7am–5pm" },
+    { name: "Mile 12 International Market", specialty: "Fresh Produce & Grains", days: "Daily", hours: "5am–8pm", lat: 6.6069, lng: 3.3909 },
+    { name: "Oshodi Market", specialty: "Livestock & Poultry", days: "Daily", hours: "7am–7pm", lat: 6.5546, lng: 3.3508 },
+    { name: "Mushin Agric Market", specialty: "General Agric", days: "Mon–Sat", hours: "8am–6pm", lat: 6.5373, lng: 3.3533 },
+    { name: "Ikorodu Agric Hub", specialty: "Crops & Inputs", days: "Wed & Sat", hours: "7am–5pm", lat: 6.6194, lng: 3.5129 },
   ],
   Kano: [
-    { name: "Dawanau Grain Market", specialty: "Grains & Pulses", days: "Mon–Sat", hours: "7am–6pm" },
-    { name: "Rimi Cattle Market", specialty: "Livestock", days: "Tue & Fri", hours: "8am–4pm" },
-    { name: "Yankaba Produce Market", specialty: "Fresh Produce", days: "Daily", hours: "6am–8pm" },
-    { name: "Kurmi Market", specialty: "General Trade", days: "Daily", hours: "8am–7pm" },
+    { name: "Dawanau Grain Market", specialty: "Grains & Pulses", days: "Mon–Sat", hours: "7am–6pm", lat: 12.0022, lng: 8.5920 },
+    { name: "Rimi Cattle Market", specialty: "Livestock", days: "Tue & Fri", hours: "8am–4pm", lat: 11.9978, lng: 8.5167 },
+    { name: "Yankaba Produce Market", specialty: "Fresh Produce", days: "Daily", hours: "6am–8pm", lat: 11.9889, lng: 8.5336 },
+    { name: "Kurmi Market", specialty: "General Trade", days: "Daily", hours: "8am–7pm", lat: 11.9998, lng: 8.5167 },
+  ],
+  FCT: [
+    { name: "Wuse Market", specialty: "Fresh Produce & Grains", days: "Daily", hours: "6am–7pm", lat: 9.0765, lng: 7.4898 },
+    { name: "Karu Agric Market", specialty: "Crops & Livestock", days: "Mon–Sat", hours: "7am–5pm", lat: 8.9878, lng: 7.5625 },
+    { name: "Gwagwalada Produce Market", specialty: "Root Crops", days: "Tue & Sat", hours: "6am–4pm", lat: 8.9463, lng: 7.0834 },
+    { name: "Nyanya Market", specialty: "General Agric", days: "Daily", hours: "7am–7pm", lat: 9.0194, lng: 7.5231 },
   ],
   Abuja: [
-    { name: "Wuse Market", specialty: "Fresh Produce & Grains", days: "Daily", hours: "6am–7pm" },
-    { name: "Karu Agric Market", specialty: "Crops & Livestock", days: "Mon–Sat", hours: "7am–5pm" },
-    { name: "Gwagwalada Produce Market", specialty: "Root Crops", days: "Tue & Sat", hours: "6am–4pm" },
-    { name: "Nyanya Market", specialty: "General Agric", days: "Daily", hours: "7am–7pm" },
+    { name: "Wuse Market", specialty: "Fresh Produce & Grains", days: "Daily", hours: "6am–7pm", lat: 9.0765, lng: 7.4898 },
+    { name: "Karu Agric Market", specialty: "Crops & Livestock", days: "Mon–Sat", hours: "7am–5pm", lat: 8.9878, lng: 7.5625 },
+    { name: "Gwagwalada Produce Market", specialty: "Root Crops", days: "Tue & Sat", hours: "6am–4pm", lat: 8.9463, lng: 7.0834 },
+    { name: "Nyanya Market", specialty: "General Agric", days: "Daily", hours: "7am–7pm", lat: 9.0194, lng: 7.5231 },
   ],
   Oyo: [
-    { name: "Bodija Market", specialty: "Grains & Cassava", days: "Daily", hours: "6am–8pm" },
-    { name: "Oje Market", specialty: "General Trade", days: "Daily", hours: "8am–6pm" },
-    { name: "Ojoo Agric Hub", specialty: "Fresh Produce", days: "Mon–Sat", hours: "7am–6pm" },
-    { name: "Eruwa Farmers Market", specialty: "Root Crops", days: "Thu & Sun", hours: "7am–4pm" },
+    { name: "Bodija Market", specialty: "Grains & Cassava", days: "Daily", hours: "6am–8pm", lat: 7.4139, lng: 3.9084 },
+    { name: "Oje Market", specialty: "General Trade", days: "Daily", hours: "8am–6pm", lat: 7.3992, lng: 3.8965 },
+    { name: "Ojoo Agric Hub", specialty: "Fresh Produce", days: "Mon–Sat", hours: "7am–6pm", lat: 7.4667, lng: 3.9333 },
+    { name: "Eruwa Farmers Market", specialty: "Root Crops", days: "Thu & Sun", hours: "7am–4pm", lat: 7.1186, lng: 3.4358 },
   ],
   Rivers: [
-    { name: "Mile 3 Market", specialty: "Fish & Produce", days: "Daily", hours: "5am–8pm" },
-    { name: "Rumuola Agric Market", specialty: "General Agric", days: "Mon–Sat", hours: "7am–6pm" },
-    { name: "Obio Market", specialty: "Fresh Produce", days: "Daily", hours: "6am–7pm" },
-    { name: "Choba Farmers Hub", specialty: "Grains & Pulses", days: "Wed & Sat", hours: "7am–5pm" },
+    { name: "Mile 3 Market", specialty: "Fish & Produce", days: "Daily", hours: "5am–8pm", lat: 4.8211, lng: 6.9886 },
+    { name: "Rumuola Agric Market", specialty: "General Agric", days: "Mon–Sat", hours: "7am–6pm", lat: 4.8286, lng: 7.0136 },
+    { name: "Obio Market", specialty: "Fresh Produce", days: "Daily", hours: "6am–7pm", lat: 4.8500, lng: 7.0500 },
+    { name: "Choba Farmers Hub", specialty: "Grains & Pulses", days: "Wed & Sat", hours: "7am–5pm", lat: 4.8800, lng: 6.9500 },
+  ],
+  Kaduna: [
+    { name: "Giwa Market", specialty: "Grains & Inputs", days: "Mon–Sat", hours: "7am–6pm", lat: 11.0635, lng: 7.7185 },
+    { name: "Kawo Market", specialty: "General Agric", days: "Daily", hours: "6am–7pm", lat: 10.5455, lng: 7.4198 },
+    { name: "Barnawa Produce Market", specialty: "Fresh Produce", days: "Daily", hours: "7am–6pm", lat: 10.4784, lng: 7.4427 },
+    { name: "Kakuri Agric Hub", specialty: "Livestock", days: "Wed & Sat", hours: "8am–5pm", lat: 10.4921, lng: 7.4563 },
+  ],
+  Enugu: [
+    { name: "Ogbete Market", specialty: "Yam & Root Crops", days: "Daily", hours: "6am–7pm", lat: 6.4501, lng: 7.5116 },
+    { name: "Abakpa Nike Market", specialty: "Fresh Produce", days: "Daily", hours: "7am–6pm", lat: 6.4798, lng: 7.5619 },
+    { name: "Coal Camp Market", specialty: "General Agric", days: "Mon–Sat", hours: "7am–5pm", lat: 6.4436, lng: 7.5024 },
+    { name: "New Haven Market", specialty: "Crops & Inputs", days: "Daily", hours: "8am–7pm", lat: 6.4367, lng: 7.5300 },
   ],
 };
 
@@ -211,9 +229,10 @@ router.get("/nearby", async (req, res) => {
       specialty: m.specialty,
       days: m.days,
       hours: m.hours,
-      distance: `${(1.5 + i * 1.8).toFixed(1)} km`,
       isOpen: hour >= 7 && hour < 19,
       state: state || "Kano",
+      lat: m.lat,
+      lng: m.lng,
     })));
   } catch (err) {
     req.log.error({ err }, "Failed to get nearby markets");

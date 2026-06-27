@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db, conversationsTable, messagesTable, scanResultsTable, farmersTable } from "@workspace/db";
 import { eq, desc, count, and, inArray } from "drizzle-orm";
 
-const FREE_MESSAGE_LIMIT = 20;
+const FREE_MESSAGE_LIMIT = 5;
 const RESET_HOURS = 10;
 
 const router = Router();

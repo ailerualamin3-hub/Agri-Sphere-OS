@@ -103,6 +103,8 @@ export default function Market() {
   const [analyzing, setAnalyzing] = useState(false);
   const [nearbyMarkets, setNearbyMarkets] = useState<any[]>([]);
   const [loadingNearby, setLoadingNearby] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [gettingLocation, setGettingLocation] = useState(false);
 
   const { data: prices, isLoading: pricesLoading, refetch } = useGetMarketPrices({
     query: { queryKey: getGetMarketPricesQueryKey() },
@@ -140,6 +142,34 @@ export default function Market() {
   useEffect(() => {
     if (activeTab === "nearby") loadNearby();
   }, [activeTab, loadNearby]);
+
+  const haversineKm = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  const getMyLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "Location not supported", description: "Your browser doesn't support GPS location.", variant: "destructive" });
+      return;
+    }
+    setGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGettingLocation(false);
+        toast({ title: "Location found!", description: "Distances calculated from your current position." });
+      },
+      () => {
+        setGettingLocation(false);
+        toast({ title: "Location denied", description: "Allow location access to see distances.", variant: "destructive" });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const handleAnalyze = async () => {
     if (!analyzeCommodity) { toast({ title: "Pick a commodity first" }); return; }
@@ -224,51 +254,87 @@ export default function Market() {
             </button>
           </div>
 
+          {/* GPS Distance Button */}
+          <button
+            onClick={getMyLocation}
+            disabled={gettingLocation}
+            className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all ${
+              userLocation
+                ? "bg-green-50 text-[#16A34A] border-2 border-[#16A34A]"
+                : "bg-[#1E3A8A] text-white shadow-md"
+            }`}
+          >
+            {gettingLocation ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Getting your location...</>
+            ) : userLocation ? (
+              <><Navigation className="w-4 h-4" /> Location Active — Distances Showing</>
+            ) : (
+              <><Navigation className="w-4 h-4" /> Tap to Get Distance from My Location</>
+            )}
+          </button>
+
           {loadingNearby ? (
             <div className="space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}</div>
           ) : nearbyMarkets.length > 0 ? (
             <div className="space-y-3">
-              {nearbyMarkets.map((market: any) => {
-                const mapsUrl = `https://www.openstreetmap.org/search?query=${encodeURIComponent(`${market.name}, ${market.state}, Nigeria`)}`;
-                return (
-                  <Card key={market.id} className="rounded-2xl border-0 bg-white shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0 pr-3">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <h3 className="font-bold text-gray-900 truncate">{market.name}</h3>
-                            <span className={`shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-full ${market.isOpen ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                              {market.isOpen ? "OPEN" : "CLOSED"}
-                            </span>
+              {[...nearbyMarkets]
+                .map((m: any) => ({
+                  ...m,
+                  computedKm: userLocation ? haversineKm(userLocation.lat, userLocation.lng, m.lat, m.lng) : null,
+                }))
+                .sort((a, b) => (a.computedKm ?? Infinity) - (b.computedKm ?? Infinity))
+                .map((market: any) => {
+                  const mapsUrl = market.lat && market.lng
+                    ? `https://www.openstreetmap.org/?mlat=${market.lat}&mlon=${market.lng}#map=15/${market.lat}/${market.lng}`
+                    : `https://www.openstreetmap.org/search?query=${encodeURIComponent(`${market.name}, ${market.state}, Nigeria`)}`;
+
+                  const distLabel = market.computedKm != null
+                    ? market.computedKm < 1
+                      ? `${Math.round(market.computedKm * 1000)} m`
+                      : `${market.computedKm.toFixed(1)} km`
+                    : null;
+
+                  return (
+                    <Card key={market.id} className="rounded-2xl border-0 bg-white shadow-sm">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2.5">
+                          <div className="flex-1 min-w-0 pr-3">
+                            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                              <h3 className="font-bold text-gray-900">{market.name}</h3>
+                              <span className={`shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-full ${market.isOpen ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                                {market.isOpen ? "OPEN" : "CLOSED"}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                              <ShoppingBag className="w-3 h-3" /> {market.specialty}
+                            </p>
                           </div>
-                          <p className="text-xs text-gray-500 flex items-center gap-1">
-                            <ShoppingBag className="w-3 h-3" /> {market.specialty}
-                          </p>
+                          {distLabel && (
+                            <div className="text-right shrink-0 bg-[#16A34A]/10 rounded-xl px-2.5 py-1.5">
+                              <p className="text-sm font-black text-[#16A34A]">{distLabel}</p>
+                              <p className="text-[9px] text-gray-400 font-semibold">from you</p>
+                            </div>
+                          )}
                         </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-xs font-black text-[#16A34A]">{market.distance}</p>
-                          <p className="text-[10px] text-gray-400">away</p>
+                        <div className="flex items-center gap-4 mb-3">
+                          <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                            <Clock className="w-3 h-3" /> {market.hours}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                            <MapPin className="w-3 h-3" /> {market.days}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-4 mb-3">
-                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                          <Clock className="w-3 h-3" /> {market.hours}
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                          <MapPin className="w-3 h-3" /> {market.days}
-                        </div>
-                      </div>
-                      <a
-                        href={mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#1E3A8A] text-white text-xs font-bold"
-                      >
-                        <Navigation className="w-3.5 h-3.5" /> Get Directions on Map
-                      </a>
-                    </CardContent>
-                  </Card>
-                );
+                        <a
+                          href={mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#1E3A8A] text-white text-xs font-bold"
+                        >
+                          <Navigation className="w-3.5 h-3.5" /> Get Directions on Map
+                        </a>
+                      </CardContent>
+                    </Card>
+                  );
               })}
             </div>
           ) : (
@@ -285,9 +351,9 @@ export default function Market() {
             <CardContent className="p-4 flex gap-3">
               <Navigation className="w-5 h-5 text-[#1E3A8A] shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-bold text-[#1E3A8A] mb-1">How to get directions</p>
+                <p className="text-xs font-bold text-[#1E3A8A] mb-1">How distances work</p>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Tap "Get Directions on Map" to open OpenStreetMap. You can then use it for navigation or share the location with someone else.
+                  Tap the button above to use your GPS. Distance is calculated as a straight line — actual road distance may be longer. Tap "Get Directions" to open the map for turn-by-turn navigation.
                 </p>
               </div>
             </CardContent>
