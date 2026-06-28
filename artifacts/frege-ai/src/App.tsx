@@ -22,6 +22,7 @@ import Payment from "@/pages/payment";
 import Reports from "@/pages/reports";
 import SharePage from "@/pages/share";
 import Settings from "@/pages/settings";
+import Reminders from "@/pages/reminders";
 import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/layout";
 
@@ -106,6 +107,9 @@ function AppRouter() {
       <Route path="/share/:token" component={SharePage} />
       <Route path="/settings">
         <ProtectedRoute><Settings /></ProtectedRoute>
+      </Route>
+      <Route path="/reminders">
+        <ProtectedRoute><Reminders /></ProtectedRoute>
       </Route>
       <Route path="/scan">
         <ProtectedRoute><Layout><Diagnose /></Layout></ProtectedRoute>

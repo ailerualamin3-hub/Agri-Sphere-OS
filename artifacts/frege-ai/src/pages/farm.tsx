@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { useLocation } from "wouter";
 import {
   Plus, MapPin, Sun, Thermometer, Droplets, Activity,
   AlertTriangle, Bot, CloudRain, Cloud, ChevronRight, Leaf,
-  X, Loader2, Sprout, Calendar, Tractor, Check
+  X, Loader2, Sprout, Calendar, Tractor, Check, Bell
 } from "lucide-react";
 import { SeasonPlanner } from "@/components/season-planner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -636,6 +637,7 @@ Format as JSON: {"tasks":[{"title":"...","urgency":"high/medium/low","action":".
 }
 
 export default function Farm() {
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [showAddFarm, setShowAddFarm] = useState(false);
   const [showAddCrop, setShowAddCrop] = useState(false);
@@ -919,10 +921,21 @@ export default function Farm() {
 
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-gray-900">Livestock Register</h2>
-            <Button size="sm" onClick={() => farms?.length ? setShowAddLivestock(true) : toast({ title: "Add a farm first" })}
-              className="h-8 bg-[#1E3A8A] hover:bg-blue-900 text-white font-bold rounded-xl gap-1 px-3">
-              <Plus className="w-3.5 h-3.5" /> Add Animals
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={() => setLocation("/reminders")}
+                variant="outline"
+                className="h-8 border-amber-200 bg-amber-50 text-amber-700 font-bold rounded-xl gap-1 px-2.5">
+                <Bell className="w-3.5 h-3.5" />
+                {(livestockSummary?.vaccinationsDueSoon ?? 0) > 0 && (
+                  <span className="text-[10px] bg-red-500 text-white rounded-full px-1 font-black">{livestockSummary!.vaccinationsDueSoon}</span>
+                )}
+                Reminders
+              </Button>
+              <Button size="sm" onClick={() => farms?.length ? setShowAddLivestock(true) : toast({ title: "Add a farm first" })}
+                className="h-8 bg-[#1E3A8A] hover:bg-blue-900 text-white font-bold rounded-xl gap-1 px-3">
+                <Plus className="w-3.5 h-3.5" /> Add
+              </Button>
+            </div>
           </div>
 
           {livestockLoading ? (
