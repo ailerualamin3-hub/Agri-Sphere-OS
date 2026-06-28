@@ -8,22 +8,37 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 const FREE_SCAN_LIMIT = 5;
 
-const SCAN_PROMPTS: Record<string, string> = {
-  crop: `You are an expert Nigerian agricultural pathologist. Analyze this crop/plant image from a Nigerian farm.
+const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
+  Hausa: " Respond entirely in Hausa language (Harshen Hausa). Use simple, clear words that rural farmers understand. Keep all JSON field names in English but make all values in Hausa.",
+  Yoruba: " Respond entirely in Yoruba language (Èdè Yorùbá). Use simple, clear words that rural farmers understand. Keep all JSON field names in English but make all values in Yoruba.",
+  Igbo: " Respond entirely in Igbo language (Asụsụ Igbo). Use simple, clear words that rural farmers understand. Keep all JSON field names in English but make all values in Igbo.",
+  Fulfulde: " Respond entirely in Fulfulde language. Use simple, clear words that rural farmers understand. Keep all JSON field names in English but make all values in Fulfulde.",
+  French: " Respond entirely in French (Français). Keep all JSON field names in English but make all values in French. This is for West African francophone farmers.",
+  English: "",
+};
+
+function buildPrompt(scanType: string, language: string): string {
+  const lang = LANGUAGE_INSTRUCTIONS[language] ?? "";
+
+  const prompts: Record<string, string> = {
+    crop: `You are an expert Nigerian agricultural pathologist. Analyze this crop/plant image from a Nigerian farm.${lang}
 Return ONLY a valid JSON object with no markdown, no code blocks, no extra text — just raw JSON starting with { and ending with }:
 {"diagnosis":"specific disease or condition name","confidence":85,"severity":"Good","description":"2-3 sentences about what you see and what it means for the farmer","recommendations":["Action 1 with Nigerian context","Action 2","Action 3","Action 4"],"additionalInfo":[{"label":"Affected Area","value":"..."},{"label":"Disease Stage","value":"..."},{"label":"Spread Risk","value":"..."},{"label":"Recovery Chance","value":"..."}]}
 severity must be one of: Good, Moderate, High, Critical. Use Nigerian crop varieties. Mention costs in Naira where relevant.`,
 
-  animal: `You are an expert Nigerian veterinarian. Analyze this livestock image from a Nigerian farm.
+    animal: `You are an expert Nigerian veterinarian. Analyze this livestock image from a Nigerian farm.${lang}
 Return ONLY a valid JSON object with no markdown, no code blocks, no extra text — just raw JSON starting with { and ending with }:
 {"diagnosis":"condition or disease name","confidence":80,"severity":"Moderate","description":"2-3 sentences about what you observe and urgency","recommendations":["Action 1","Action 2","Action 3","Action 4"],"additionalInfo":[{"label":"Symptoms Detected","value":"..."},{"label":"Contagion Risk","value":"..."},{"label":"Treatment Window","value":"..."},{"label":"Mortality Risk","value":"..."}]}
 severity must be one of: Good, Moderate, High, Critical. Include Nigerian veterinary resources and Naira costs.`,
 
-  soil: `You are an expert Nigerian soil scientist. Analyze this soil image from a Nigerian farm.
+    soil: `You are an expert Nigerian soil scientist. Analyze this soil image from a Nigerian farm.${lang}
 Return ONLY a valid JSON object with no markdown, no code blocks, no extra text — just raw JSON starting with { and ending with }:
 {"diagnosis":"soil type and fertility condition","confidence":88,"severity":"Good","description":"2-3 sentences about soil health and what it means for crop production","recommendations":["Action 1 with Nigerian context","Action 2","Action 3","Action 4"],"additionalInfo":[{"label":"Soil Type","value":"..."},{"label":"Estimated pH","value":"..."},{"label":"Drainage","value":"..."},{"label":"Best Crops","value":"..."}]}
 severity must be one of: Good, Moderate, High, Critical. Reference Nigerian soil zones (Sudan Savanna, Guinea Savanna, rainforest belt).`,
-};
+  };
+
+  return prompts[scanType] ?? prompts.crop;
+}
 
 function extractJson(text: string): any {
   const cleaned = text
@@ -99,7 +114,8 @@ router.post("/analyze", async (req, res) => {
 
     const base64Data = imageBase64.replace(/^data:[^;]+;base64,/, "");
     const imageMimeType = (mimeType || "image/jpeg") as string;
-    const prompt = SCAN_PROMPTS[scanType as string] || SCAN_PROMPTS.crop;
+    const language = (req.body.language as string) || "English";
+    const prompt = buildPrompt(scanType as string, language);
 
     let analysisResult: any;
     try {

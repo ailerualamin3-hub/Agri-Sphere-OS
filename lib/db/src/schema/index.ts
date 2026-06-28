@@ -9,3 +9,4 @@ export * from "./opportunities";
 export * from "./notifications";
 export * from "./reports";
 export * from "./community-qa";
+export * from "./crop-treatments";
